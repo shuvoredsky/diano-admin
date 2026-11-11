@@ -81,3 +81,4 @@ export function useRecentOrdersQuery(limit = 5) {
     enabled: canReadOrders,
   });
 }
+

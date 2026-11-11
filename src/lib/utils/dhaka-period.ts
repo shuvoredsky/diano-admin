@@ -1,5 +1,6 @@
 import type { AnalyticsPeriod } from '@/features/analytics/types/analytics.types';
 
+export type { AnalyticsPeriod };
 export const DHAKA_TIMEZONE = 'Asia/Dhaka';
 export const DHAKA_OFFSET_MS = 6 * 60 * 60 * 1000; // UTC+6 fixed offset
 

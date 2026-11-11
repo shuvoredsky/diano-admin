@@ -8,14 +8,13 @@ import {
 } from '@/lib/socket/socket-client';
 import { executeTokenRefresh } from '@/lib/api/browser-client';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const eventListeners: Record<string, ((...args: any[]) => any)[]> = {};
+const eventListeners: Record<string, ((...args: unknown[]) => unknown)[]> = {};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockSocket: any = {
   connected: false,
   auth: {},
-  on: vi.fn((event: string, cb: (...args: any[]) => any) => {
+  on: vi.fn((event: string, cb: (...args: unknown[]) => unknown) => {
     if (!eventListeners[event]) {
       eventListeners[event] = [];
     }
@@ -113,7 +112,10 @@ describe('Admin Socket.IO Lifecycle', () => {
     expect(connectErrorListeners.length).toBeGreaterThan(0);
 
     // Simulate backend rejecting handshake due to expired token
-    await connectErrorListeners[0](new Error('Authentication error: Invalid or expired token'));
+    const firstListener = connectErrorListeners[0];
+    if (firstListener) {
+      await firstListener(new Error('Authentication error: Invalid or expired token'));
+    }
 
     expect(executeTokenRefresh).toHaveBeenCalledTimes(1);
     expect(mockSocket.auth).toEqual({ token: 'fresh-recovered-token' });

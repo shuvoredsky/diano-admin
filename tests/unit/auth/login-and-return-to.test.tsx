@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import type { InternalAxiosRequestConfig } from 'axios';
 import LoginPage from '@/app/(auth)/login/page';
 import { AppProviders } from '@/components/providers/app-providers';
 import * as authApi from '@/features/auth/api/auth.api';
@@ -162,7 +163,7 @@ describe('Login Page & returnTo Open-Redirect Sanitization', () => {
         status: 403,
         statusText: 'Forbidden',
         headers: {},
-        config: {} as any,
+        config: {} as unknown as InternalAxiosRequestConfig,
         data: {
           success: false,
           statusCode: 403,

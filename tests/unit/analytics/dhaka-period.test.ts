@@ -4,8 +4,6 @@ import {
   createDhakaDate,
   resolveClientDhakaPeriod,
   calculatePercentChange,
-  formatDhakaDateOnly,
-  DHAKA_OFFSET_MS,
 } from '@/lib/utils/dhaka-period';
 
 describe('Asia/Dhaka Period Calculations & Boundary Rules', () => {

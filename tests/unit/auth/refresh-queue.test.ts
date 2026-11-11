@@ -174,6 +174,7 @@ describe('Auth API Client: Single-Flight 401 Token Refresh Queue', () => {
 
     // Mock navigator.locks using Object.defineProperty to simulate web lock execution across tabs
     let lockQueue = Promise.resolve();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const originalLocks = (navigator as any).locks;
     Object.defineProperty(navigator, 'locks', {
       value: {
@@ -204,6 +205,7 @@ describe('Auth API Client: Single-Flight 401 Token Refresh Queue', () => {
     if (originalLocks !== undefined) {
       Object.defineProperty(navigator, 'locks', { value: originalLocks, configurable: true, writable: true });
     } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (navigator as any).locks;
     }
   });

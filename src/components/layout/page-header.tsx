@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { cn } from '@/lib/utils/cn';
 
 export interface PageHeaderProps {
   title: string;
@@ -6,6 +7,7 @@ export interface PageHeaderProps {
   badge?: ReactNode;
   actions?: ReactNode;
   children?: ReactNode;
+  className?: string;
 }
 
 export function PageHeader({
@@ -14,9 +16,10 @@ export function PageHeader({
   badge,
   actions,
   children,
+  className,
 }: PageHeaderProps) {
   return (
-    <div className="mb-6 space-y-4">
+    <div className={cn('mb-6 space-y-4', className)}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
