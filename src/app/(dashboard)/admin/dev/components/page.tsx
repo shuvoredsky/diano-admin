@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/layout/page-header';
 import {
   MoneyText,
@@ -71,6 +72,10 @@ const sampleOrders: SampleOrder[] = [
 ];
 
 export default function ComponentShowcasePage() {
+  if (process.env.NODE_ENV === 'production') {
+    notFound();
+  }
+
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [richText, setRichText] = useState('### Product Features\n- 100% Organic Cotton\n- Breathable fabric');
   const [dateRange, setDateRange] = useState<{ startDate: string; endDate: string }>({
