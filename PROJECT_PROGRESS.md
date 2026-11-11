@@ -12,7 +12,7 @@
 | **Phase 1** | **INSPECT (No Feature Code):** Real workspace audit, route status, permission comparison vs `seed.ts`, env & API client audit, `ADMIN_GAP_REPORT.md`, `BACKEND_GAPS.md`, `ADMIN_PERMISSION_MAP.md` | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (5 files / 17 passed), `build` (33/33 pages + Proxy) |
 | **Phase 2** | **DESIGN SYSTEM + SHELL:** Mint/forest CSS tokens (`#DCEFE3`, `#15965F`, `#146B45`, `#F2FAF6`), light/dark themes, collapsible sidebar, top header, breadcrumbs, `PageHeader`, reusable components (`DataTable`, `FilterBar`, `DateRangePicker`, `KpiCard`, `ChartCard`, `StatusBadge`, `MoneyText`, `DateText`, `ConfirmDialog`, `PermissionGate`, etc.), `/dev/components` preview + RTL tests | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (12 files / 46 passed), `build` (34/34 pages + Proxy) |
 | **Phase 3** | **AUTH:** `/login` UI, Redux in-memory token, single-flight refresh queue, session bootstrap (`/auth/refresh` -> `/auth/me`), `proxy.ts` + client guards, permission-filtered navigation, 401/403 pages, logout/logout-all, Socket.IO connect/disconnect lifecycle + tests | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (17 files / 66 passed), `build` (34/34 pages + Proxy) |
-| **Phase 4** | **DASHBOARD:** Greeting, Dhaka date, period selector (`today`..`custom`), compare toggle, 12 KPI cards, Recharts analytics charts, top products/customers, recent orders, low-stock, abandoned summary, fraud alerts + tests | PENDING | — |
+| **Phase 4** | **DASHBOARD:** Greeting, Dhaka date, period selector (`today`..`custom`), compare toggle, 12 KPI cards, Recharts analytics charts, top products/customers, recent orders, low-stock, abandoned summary, fraud alerts + tests | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (19 files / 88 passed), `build` (34/34 pages + Proxy) |
 | **Phase 5** | **CATALOG + INVENTORY:** Products list/create/edit/details (`form-options`, dynamic spec schema, MRP/discount pricing, variants, Cloudinary slots, publish gate), Categories tree & spec template editor, Inventory overview/movements/receive/adjust/damage/transfer, Suppliers, Purchase Orders, Stock Audits | PENDING | — |
 | **Phase 6** | **ORDERS, ABANDONED, CUSTOMERS:** Orders list/detail/state-machine transitions/timeline/notes/invoice PDF, Abandoned checkouts list/stats/recovery with consent & PII rules, Customers list/detail/notes/timeline/status | PENDING | — |
 | **Phase 7** | **PAYMENTS, FRAUD, SHIPPING, RETURNS/REFUNDS:** Payments list/detail/refund/COD mark-collected (bKash/Nagad "Coming soon"), Fraud rules/review queue/approve/reject/OTP, Shipping zones/methods/shipments, Returns & Refunds | PENDING | — |
@@ -69,5 +69,42 @@
   - Reconnects with updated token on token refresh; disconnects cleanly on logout/session loss.
   - Real-time notification indicator in topbar bell connected to `notification:new` events.
   - Documented gap BG-17 in `BACKEND_GAPS.md` for missing dedicated unread count endpoint/event.
+
+---
+
+## Phase 4 Delivery Summary (Completed 2026-11-12)
+- **Asia/Dhaka Period & Compare Foundation**:
+  - `src/lib/utils/dhaka-period.ts`: Pure offset-based calculations for UTC+6 (`Asia/Dhaka`), resolving start/end boundaries for `today`, `yesterday`, `last_7_days`, `last_30_days`, `this_month`, `last_month`, `custom`.
+  - Financial percent delta calculation: returns `null` ("—", never `NaN` or `Infinity`) when previous value is zero, null, or undefined.
+  - `useDashboardPeriod` hook syncs period and compare toggle directly with URL search params (`?period=...&compare=true/false`).
+  - Interactive `DashboardPeriodSelector` with keyboard-accessible dropdown, custom date inputs, and compare toggle.
+- **Data Layer & Query Hooks**:
+  - `fetchAnalyticsOverview` (`/admin/analytics/overview`): returns comparative cards (12 KPIs + deliveredSales).
+  - `fetchAnalyticsChart` (`/admin/analytics/charts/:type`): fetches time-series and distribution charts (`sales-trend`, `order-status-pie`, `shipment-status`, `stock-by-subcategory`).
+  - `fetchAnalyticsProducts` (`/admin/analytics/products`): fetches top-performing products.
+  - `fetchLowStockItems` (`/inventory/low-stock`) & `fetchRecentOrders` (`/admin/orders`).
+  - TanStack Query hooks with 60s staleTime, `placeholderData: (prev) => prev` to prevent UI flicker on period change, and parallel independent fetching.
+  - Isolated widget error handling: each widget handles its own loading, error, and empty state with individual Retry actions.
+  - Sensitive financial metrics (`grossProfit`, `netProfit`) gated behind `analytics:view_finance`; displays "Restricted Access" badge instead of ৳0.00 when permission is missing.
+- **UI Components & Layout**:
+  - `KpiGrid`: 12 KPI cards styled with DIANO pastel variants (`lavender`, `sky`, `peach`, `softgreen`), BDT formatting via `MoneyText`, and compare deltas.
+  - `SalesTrendChart`: Recharts AreaChart for Gross vs Net Sales with Dhaka bucket formatting and BDT tooltips.
+  - `OrderStatusChart`: Recharts Donut/Pie chart for order lifecycle breakdown with status color tokens.
+  - `ShipmentStatusChart`: Recharts horizontal BarChart for courier and delivery performance.
+  - `StockSubcategoryChart`: Recharts stacked BarChart for available vs damaged inventory units by category.
+  - `RecentOrdersCard`: Recent order transactions with status badges and relative Dhaka timestamps.
+  - `LowStockCard`: Variant-level reorder point alerts.
+  - `TopProductsCard`: Top selling products ranked by revenue and quantity.
+  - Main `/admin` route mounted with `DashboardView`.
+- **Real-Time Synchronization**:
+  - `useDashboardRealtime` hook connects to backend Socket.IO events (`order:new`, `order:status`, `payment:status`, `stock:low`) with 1500ms debounce to invalidate analytics, order, and inventory queries.
+  - Manual "Refresh" button and "Updated: [time]" indicator.
+- **Verification & Tests**:
+  - `tests/unit/analytics/dhaka-period.test.ts`: 9 tests verifying Dhaka date parts, month boundaries, and zero-safe percent changes.
+  - `tests/unit/analytics/dashboard-widgets.test.tsx`: 9 tests verifying all 12 KPI cards, finance permission protection, URL param sync, isolated error retry, and list cards.
+  - Total test suite: 19 test files, 88 tests passing (0 failed, 0 skipped).
+  - TypeScript: 0 errors (`tsc --noEmit`).
+  - ESLint: 0 warnings, 0 errors.
+
 
 
