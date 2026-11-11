@@ -1,10 +1,6 @@
-/**
- * Layout shell components entrypoint.
- * Sidebar, top header, and breadcrumb navigation shells will be implemented in Phase 2.
- */
-export interface NavItemConfig {
-  label: string;
-  href: string;
-  requiredPermission?: string;
-}
-
+export * from './sidebar';
+export * from './mobile-nav';
+export * from './topbar';
+export * from './breadcrumbs';
+export * from './page-header';
+export * from './nav-config';
