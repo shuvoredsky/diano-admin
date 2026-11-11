@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useAppSelector } from '@/store/hooks';
 import { currentAdminQueryOptions } from '../api/auth.queries';
 import type { AuthUserSummary } from '@/types/auth.types';
 import type { PermissionSlug } from '@/constants/permissions';
@@ -18,14 +19,25 @@ export interface UseAuthPermissionsResult {
 }
 
 export function useAuthPermissions(): UseAuthPermissionsResult {
-  const { data: user, isLoading } = useQuery(currentAdminQueryOptions());
+  const authState = useAppSelector((state) => state.auth);
+  const { data: queryUser, isLoading: isQueryLoading } = useQuery({
+    ...currentAdminQueryOptions(),
+    enabled: authState.status === 'authenticated',
+  });
 
-  const roles = user?.roles ?? [];
-  const permissions = user?.permissions ?? [];
+  const user = authState.user || queryUser;
+  const roles = authState.roles.length > 0 ? authState.roles : (user?.roles ?? []);
+  const permissions = authState.permissions.length > 0 ? authState.permissions : (user?.permissions ?? []);
   const isSuperAdmin = Boolean(
-    user?.isSuperAdmin || roles.includes('super-admin')
+    authState.isSuperAdmin ||
+      user?.isSuperAdmin ||
+      roles.includes('super-admin') ||
+      roles.includes('SUPER_ADMIN')
   );
-  const isAuthenticated = Boolean(user?.id);
+  const isAuthenticated = authState.status === 'authenticated' || Boolean(user?.id);
+  const isLoading =
+    authState.status === 'loading' ||
+    (authState.status === 'authenticated' && isQueryLoading && !user);
 
   const hasPermission = (permission: PermissionSlug | string): boolean => {
     if (!isAuthenticated) return false;
@@ -37,14 +49,14 @@ export function useAuthPermissions(): UseAuthPermissionsResult {
     if (!isAuthenticated) return false;
     if (isSuperAdmin) return true;
     if (requiredPermissions.length === 0) return true;
-    return requiredPermissions.some(perm => permissions.includes(perm));
+    return requiredPermissions.some((perm) => permissions.includes(perm));
   };
 
   const hasAllPermissions = (requiredPermissions: (PermissionSlug | string)[]): boolean => {
     if (!isAuthenticated) return false;
     if (isSuperAdmin) return true;
     if (requiredPermissions.length === 0) return true;
-    return requiredPermissions.every(perm => permissions.includes(perm));
+    return requiredPermissions.every((perm) => permissions.includes(perm));
   };
 
   return {

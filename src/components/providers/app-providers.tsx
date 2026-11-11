@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { StoreProvider } from '@/store/provider';
+import { SessionBootstrapProvider } from '@/features/auth/components/session-bootstrap-provider';
 import { QueryProvider } from './query-provider';
 import { ThemeProvider } from './theme-provider';
 
@@ -15,11 +16,12 @@ export function AppProviders({ children }: AppProvidersProps) {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <StoreProvider>
         <QueryProvider>
-          {children}
-          <Toaster richColors closeButton position="top-right" />
+          <SessionBootstrapProvider>
+            {children}
+            <Toaster richColors closeButton position="top-right" />
+          </SessionBootstrapProvider>
         </QueryProvider>
       </StoreProvider>
     </ThemeProvider>
   );
 }
-
