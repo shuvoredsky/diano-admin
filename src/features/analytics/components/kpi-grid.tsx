@@ -2,7 +2,7 @@
 
 import { KpiCard, type KpiPastel } from '@/components/shared/kpi-card';
 import { useAuthPermissions } from '@/features/auth/hooks';
-import type { AnalyticsOverviewData } from '../types/analytics.types';
+import type { AnalyticsOverviewData, KpiCardData } from '../types/analytics.types';
 import {
   DollarSign,
   TrendingUp,
@@ -43,8 +43,7 @@ export function KpiGrid({
   const kpis: Array<{
     id: string;
     title: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    field: any;
+    field?: KpiCardData<number> | null;
     isCurrency?: boolean;
     unit?: string;
     pastel: KpiPastel;
@@ -117,7 +116,7 @@ export function KpiGrid({
     },
     {
       id: 'customer-count',
-      title: 'Active Customers',
+      title: 'Purchasing Customers',
       field: cards?.customerCount,
       unit: 'customers',
       pastel: 'sky',

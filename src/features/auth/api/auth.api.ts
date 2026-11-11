@@ -12,6 +12,20 @@ import type {
 } from '../types/auth.types';
 
 /**
+ * Formats account lockout messages in a fail-safe manner if backend structured retryAfter is absent.
+ */
+export function formatLockoutMessage(msg: string): string {
+  if (msg.toLowerCase().includes('temporarily locked')) {
+    const match = msg.match(/(\d+)\s*minute/i);
+    if (match && match[1]) {
+      return `Account is temporarily locked due to excessive failed attempts. Try again in ${match[1]} minute(s).`;
+    }
+    return 'Account is temporarily locked due to excessive failed attempts. Please try again later.';
+  }
+  return msg || 'Access denied. Administrator privileges required.';
+}
+
+/**
  * Executes admin login via the same-origin Next.js BFF Route Handler (/api/auth/admin/login).
  * The HttpOnly refresh cookie is bound to the Next.js origin and the short-lived access token
  * is stored exclusively in memory.
@@ -40,7 +54,7 @@ export async function loginAdmin(credentials: LoginCredentials): Promise<AuthSes
         throw new Error('Invalid email or password', { cause: error });
       }
       if (status === 403) {
-        throw new Error(msg || 'Access denied. Administrator privileges required.', { cause: error });
+        throw new Error(formatLockoutMessage(msg), { cause: error });
       }
       if (status === 429) {
         throw new Error(msg || 'Too many login attempts. Please try again later.', { cause: error });

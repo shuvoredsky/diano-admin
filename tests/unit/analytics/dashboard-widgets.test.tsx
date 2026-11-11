@@ -97,7 +97,7 @@ describe('Dashboard Widgets, Permissions, and Isolated Failures', () => {
       expect(screen.getByText('Items Sold')).toBeInTheDocument();
       expect(screen.getByText('Cancellation Rate')).toBeInTheDocument();
       expect(screen.getByText('Return Rate')).toBeInTheDocument();
-      expect(screen.getByText('Active Customers')).toBeInTheDocument();
+      expect(screen.getByText('Purchasing Customers')).toBeInTheDocument();
       expect(screen.getByText('Repeat Customer Rate')).toBeInTheDocument();
       expect(screen.getByText('Gross Profit')).toBeInTheDocument();
       expect(screen.getByText('Net Profit')).toBeInTheDocument();

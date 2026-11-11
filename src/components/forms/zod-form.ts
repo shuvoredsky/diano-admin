@@ -6,8 +6,7 @@ import type { z } from 'zod';
 
 export interface UseZodFormProps<TFieldValues extends FieldValues>
   extends Omit<UseFormProps<TFieldValues>, 'resolver'> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  schema: z.ZodType<TFieldValues, any, any>;
+  schema: z.ZodType<TFieldValues, z.ZodTypeDef, unknown>;
 }
 
 /**
