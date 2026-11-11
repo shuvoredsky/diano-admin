@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import axios from 'axios';
+import axios, { type InternalAxiosRequestConfig, AxiosHeaders } from 'axios';
 import { browserApiClient } from '@/lib/api/browser-client';
 import { getAccessToken, setAccessToken, clearAccessToken } from '@/lib/auth/token-store';
 import { onSessionExpired } from '@/lib/auth/auth-events';
@@ -97,7 +97,7 @@ describe('Auth API Client: Single-Flight 401 Token Refresh Queue', () => {
           status: 401,
           statusText: 'Unauthorized',
           headers: {},
-          config: {} as axios.InternalAxiosRequestConfig,
+          config: {} as InternalAxiosRequestConfig,
           data: { success: false, statusCode: 401, message: 'Invalid or revoked refresh token' },
         });
       }
@@ -137,8 +137,8 @@ describe('Auth API Client: Single-Flight 401 Token Refresh Queue', () => {
       const config = {
         url,
         method: 'POST',
-        headers: new axios.AxiosHeaders(),
-      } as axios.InternalAxiosRequestConfig;
+        headers: new AxiosHeaders(),
+      } as InternalAxiosRequestConfig;
 
       const error = new axios.AxiosError('Unauthorized', '401', config, null, {
         status: 401,
