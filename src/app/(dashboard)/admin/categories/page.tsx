@@ -1,17 +1,10 @@
-﻿import type { Metadata } from 'next';
+﻿import { CategoriesManager } from '@/features/categories/components/categories-manager';
 
-import { RoutePlaceholder } from '@/components/shared/route-placeholder';
-
-export const metadata: Metadata = {
-  title: 'Categories',
+export const metadata = {
+  title: 'Categories | DIANO Admin',
+  description: 'Hierarchical category tree with max 3 levels and specification templates.',
 };
 
-export default function AdminRoutePage() {
-  return (
-    <RoutePlaceholder
-      title="Categories"
-      route="/admin/categories"
-      description="Hierarchical category tree and specification template management foundation."
-    />
-  );
+export default function AdminCategoriesPage() {
+  return <CategoriesManager />;
 }
