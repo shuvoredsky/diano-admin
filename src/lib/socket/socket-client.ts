@@ -1,6 +1,7 @@
 import { io, type Socket } from 'socket.io-client';
 import { publicEnv } from '@/config/env';
 import { onTokenRefreshed, onSessionExpired } from '@/lib/auth/auth-events';
+import { executeTokenRefresh } from '@/lib/api/browser-client';
 
 let activeSocket: Socket | null = null;
 let currentToken: string | null = null;
@@ -39,7 +40,9 @@ export function initializeAdminSocket(token: string): Socket {
   if (activeSocket) {
     currentToken = token;
     activeSocket.auth = { token };
-    if (!activeSocket.connected) {
+    if (activeSocket.connected) {
+      activeSocket.disconnect().connect();
+    } else {
       activeSocket.connect();
     }
     return activeSocket;
@@ -65,8 +68,19 @@ export function initializeAdminSocket(token: string): Socket {
     notifyConnectionChange(false);
   });
 
-  socket.on('connect_error', () => {
+  socket.on('connect_error', async (err: Error) => {
     notifyConnectionChange(false);
+    const msg = (err?.message || '').toLowerCase();
+    if (msg.includes('authentication') || msg.includes('token') || msg.includes('expired')) {
+      try {
+        const freshToken = await executeTokenRefresh();
+        if (activeSocket && freshToken) {
+          updateSocketToken(freshToken);
+        }
+      } catch {
+        disconnectAdminSocket();
+      }
+    }
   });
 
   activeSocket = socket;
@@ -94,8 +108,9 @@ export function updateSocketToken(newToken: string): void {
   if (activeSocket) {
     activeSocket.auth = { token: newToken };
     if (activeSocket.connected) {
-      // Reconnect with new credentials
       activeSocket.disconnect().connect();
+    } else {
+      activeSocket.connect();
     }
   }
 }

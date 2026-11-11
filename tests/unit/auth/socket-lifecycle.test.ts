@@ -6,12 +6,21 @@ import {
   updateSocketToken,
   getAdminSocket,
 } from '@/lib/socket/socket-client';
+import { executeTokenRefresh } from '@/lib/api/browser-client';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const eventListeners: Record<string, ((...args: any[]) => any)[]> = {};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockSocket: any = {
   connected: false,
   auth: {},
-  on: vi.fn(),
+  on: vi.fn((event: string, cb: (...args: any[]) => any) => {
+    if (!eventListeners[event]) {
+      eventListeners[event] = [];
+    }
+    eventListeners[event].push(cb);
+  }),
   off: vi.fn(),
   emit: vi.fn(),
   connect: vi.fn().mockImplementation(() => {
@@ -21,11 +30,19 @@ const mockSocket: any = {
     mockSocket.connected = false;
     return mockSocket;
   }),
-  removeAllListeners: vi.fn(),
+  removeAllListeners: vi.fn(() => {
+    for (const key of Object.keys(eventListeners)) {
+      delete eventListeners[key];
+    }
+  }),
 };
 
 vi.mock('socket.io-client', () => ({
   io: vi.fn(() => mockSocket),
+}));
+
+vi.mock('@/lib/api/browser-client', () => ({
+  executeTokenRefresh: vi.fn(),
 }));
 
 describe('Admin Socket.IO Lifecycle', () => {
@@ -33,6 +50,9 @@ describe('Admin Socket.IO Lifecycle', () => {
     vi.clearAllMocks();
     mockSocket.connected = false;
     mockSocket.auth = {};
+    for (const key of Object.keys(eventListeners)) {
+      delete eventListeners[key];
+    }
     disconnectAdminSocket();
   });
 
@@ -70,6 +90,33 @@ describe('Admin Socket.IO Lifecycle', () => {
 
     expect(mockSocket.auth).toEqual({ token: 'rotated-new-token' });
     expect(mockSocket.disconnect).toHaveBeenCalled();
+    expect(mockSocket.connect).toHaveBeenCalled();
+  });
+
+  it('reconnects with fresh token if initializeAdminSocket is called with a new token', () => {
+    initializeAdminSocket('initial-token');
+    mockSocket.connected = true;
+
+    initializeAdminSocket('different-fresh-token');
+
+    expect(mockSocket.auth).toEqual({ token: 'different-fresh-token' });
+    expect(mockSocket.disconnect).toHaveBeenCalled();
+    expect(mockSocket.connect).toHaveBeenCalled();
+  });
+
+  it('triggers token refresh and reconnects with fresh token on auth connect_error', async () => {
+    vi.mocked(executeTokenRefresh).mockResolvedValueOnce('fresh-recovered-token');
+
+    initializeAdminSocket('expired-token');
+
+    const connectErrorListeners = eventListeners['connect_error'] || [];
+    expect(connectErrorListeners.length).toBeGreaterThan(0);
+
+    // Simulate backend rejecting handshake due to expired token
+    await connectErrorListeners[0](new Error('Authentication error: Invalid or expired token'));
+
+    expect(executeTokenRefresh).toHaveBeenCalledTimes(1);
+    expect(mockSocket.auth).toEqual({ token: 'fresh-recovered-token' });
     expect(mockSocket.connect).toHaveBeenCalled();
   });
 

@@ -108,7 +108,7 @@ export function normalizeAxiosError(error: unknown): ApiClientError {
 /**
  * Executes a single-flight refresh operation with multi-tab lock protection.
  */
-async function executeTokenRefresh(): Promise<string> {
+export async function executeTokenRefresh(): Promise<string> {
   const performDirectRefresh = async (): Promise<string> => {
     // Call same-origin Next.js BFF Route Handler to rotate the HttpOnly cookie and get new access token
     const refreshResponse = await axios.post<ApiSuccessResponse<AuthSuccessPayload>>(

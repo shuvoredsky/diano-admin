@@ -155,4 +155,56 @@ describe('Auth API Client: Single-Flight 401 Token Refresh Queue', () => {
     // Refresh was NEVER called for auth endpoint failures
     expect(mockAxiosPost).not.toHaveBeenCalled();
   });
+
+  it('multi-tab synchronization: concurrent refreshes across simulated tabs trigger only one refresh network call', async () => {
+    let networkRefreshCalls = 0;
+    const mockAxiosPost = vi.spyOn(axios, 'post').mockImplementation(async (url: string) => {
+      if (url === '/api/auth/refresh') {
+        networkRefreshCalls++;
+        return {
+          data: {
+            success: true,
+            statusCode: 200,
+            data: { accessToken: 'shared-multi-tab-token' },
+          },
+        };
+      }
+      return { data: {} };
+    });
+
+    // Mock navigator.locks using Object.defineProperty to simulate web lock execution across tabs
+    let lockQueue = Promise.resolve();
+    const originalLocks = (navigator as any).locks;
+    Object.defineProperty(navigator, 'locks', {
+      value: {
+        request: vi.fn(async (_name: string, callback: () => Promise<string>) => {
+          const run = lockQueue.then(() => callback());
+          lockQueue = run.then(() => undefined, () => undefined);
+          return run;
+        }),
+      },
+      configurable: true,
+      writable: true,
+    });
+
+    const { executeTokenRefresh } = await import('@/lib/api/browser-client');
+
+    // Simulate Tab 1 and Tab 2 invoking token refresh simultaneously
+    const [tokenTab1, tokenTab2] = await Promise.all([
+      executeTokenRefresh(),
+      executeTokenRefresh(),
+    ]);
+
+    expect(tokenTab1).toBe('shared-multi-tab-token');
+    expect(tokenTab2).toBe('shared-multi-tab-token');
+    // Only Tab 1 executed the network POST, Tab 2 reused the token from Tab 1
+    expect(networkRefreshCalls).toBe(1);
+
+    mockAxiosPost.mockRestore();
+    if (originalLocks !== undefined) {
+      Object.defineProperty(navigator, 'locks', { value: originalLocks, configurable: true, writable: true });
+    } else {
+      delete (navigator as any).locks;
+    }
+  });
 });

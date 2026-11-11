@@ -155,5 +155,26 @@ describe('Login Page & returnTo Open-Redirect Sanitization', () => {
         expect(mockPush).toHaveBeenCalledWith('/admin/orders?page=2');
       });
     });
+
+    it('loginAdmin API helper maps real backend 403 lockout and retry countdown correctly', async () => {
+      const axios = (await import('axios')).default;
+      const axiosError = new axios.AxiosError('Forbidden', '403', undefined, null, {
+        status: 403,
+        statusText: 'Forbidden',
+        headers: {},
+        config: {} as any,
+        data: {
+          success: false,
+          statusCode: 403,
+          message: 'Account is temporarily locked due to excessive failed attempts. Try again in 15 minute(s).',
+        },
+      });
+
+      vi.spyOn(axios, 'post').mockRejectedValueOnce(axiosError);
+
+      await expect(
+        authApi.loginAdmin({ email: 'locked@diano.com.bd', password: 'password' })
+      ).rejects.toThrow('Account is temporarily locked due to excessive failed attempts. Try again in 15 minute(s).');
+    });
   });
 });
