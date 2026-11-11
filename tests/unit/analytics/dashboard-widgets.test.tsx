@@ -143,7 +143,9 @@ describe('Dashboard Widgets, Permissions, and Isolated Failures', () => {
 
       const retryButtons = screen.getAllByRole('button', { name: /Retry/i });
       expect(retryButtons.length).toBeGreaterThan(0);
-      fireEvent.click(retryButtons[0]);
+      if (retryButtons[0]) {
+        fireEvent.click(retryButtons[0]);
+      }
       expect(mockRetry).toHaveBeenCalled();
     });
   });
