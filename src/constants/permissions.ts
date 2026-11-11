@@ -82,6 +82,7 @@ export const PERMISSIONS = {
 
   NOTIFICATION_READ: 'notification:read',
   NOTIFICATION_SEND: 'notification:send',
+  NOTIFICATION_MANAGE: 'notification:manage',
 
   ANALYTICS_VIEW: 'analytics:view',
   ANALYTICS_VIEW_FINANCE: 'analytics:view_finance',

@@ -1,8 +1,9 @@
 # DIANO Admin Sidebar & Route Permission Map (`ADMIN_PERMISSION_MAP.md`)
 
-**Source of Truth:** `../diano-server/prisma/seed.ts` (72 permission slugs) and route-level `requirePermission(...)` declarations across `../diano-server/src/modules/*/*.routes.ts`.
+**Updated:** 2026-11-11 (Post Backend Patch Sync — 74 Granular Permissions)
+**Source of Truth:** `../diano-server/prisma/seed.ts` (74 permission slugs) and route-level `requirePermission(...)` declarations across `../diano-server/src/modules/*/*.routes.ts`.
 
-> **Rule:** `super-admin` bypasses all permission checks. A sidebar group is rendered only if at least one child item is accessible to the authenticated staff member. Hiding UI elements is a UX convenience only—every route and mutation handles `403 Forbidden` gracefully.
+> **Rule:** `super-admin` (or users with `isSuperAdmin: true`) bypasses all permission checks. A sidebar group is rendered only if at least one child item is accessible to the authenticated staff member. Hiding UI elements is a UX convenience only—every route and mutation handles `403 Forbidden` gracefully.
 
 ---
 
@@ -23,19 +24,19 @@
 | **SALES & OPERATIONS** | Shipping | `/admin/shipping` | `shipping:read`, `shipping:dispatch`, `shipping:manage` | `GET /admin/shipping/zones` (`shipping:read`, `shipping:manage`) |
 | **SALES & OPERATIONS** | Returns | `/admin/returns` | `return:read`, `return:approve`, `return:inspect`, `return:manage` | `GET /admin/returns` (`return:read`, `return:manage`) |
 | **SALES & OPERATIONS** | Refunds | `/admin/refunds` | `refund:read`, `refund:approve`, `refund:manage`, `payment:refund` | `GET /admin/refunds` (`refund:read`, `refund:manage`) |
-| **CUSTOMERS** | Customers | `/admin/customers` | `user:read`, `order:read` *(plus `customer:read` in `customers.routes.ts`)* | `GET /customers` (`customer:read` in route middleware; see `BACKEND_GAPS.md` BG-11) |
-| **CUSTOMERS** | Reviews | `/admin/reviews` | `review:read`, `review:moderate` | Backend module not implemented yet (`BACKEND_GAPS.md` BG-01) |
+| **CUSTOMERS** | Customers | `/admin/customers` | `customer:read`, `customer:manage`, `user:read` | `GET /customers` (`customer:read`) — **Seeded & Active** |
+| **CUSTOMERS** | Reviews | `/admin/reviews` | `review:read`, `review:moderate` | `GET /admin/reviews` (`review:read`), `PATCH /admin/reviews/:id/status` (`review:moderate`) — **Active** |
 | **PAYMENTS & SECURITY** | Payments | `/admin/payments` | `payment:read`, `payment:manage` | `GET /admin/payments` (`payment:read`, `payment:manage`) |
-| **PAYMENTS & SECURITY** | Fraud Detection | `/admin/fraud-detection` | `fraud:read`, `fraud:review`, `fraud:manage`, `fraud:rule_manage` | `GET /admin/fraud/reviews` (`fraud:review`, `fraud:manage`) |
+| **PAYMENTS & SECURITY** | Fraud Detection | `/admin/fraud-detection` | `fraud:read`, `fraud:review`, `fraud:manage` | `GET /admin/fraud/reviews` (`fraud:review`), rules (`fraud:manage`) — **Active** |
 | **MARKETING** | Coupons | `/admin/coupons` | `coupon:read`, `coupon:manage` | `GET /admin/coupons` (`coupon:read`, `coupon:manage`) |
 | **MARKETING** | Flash Sales | `/admin/flash-sales` | `coupon:manage` | `POST /admin/flash-sales` (`coupon:manage`) |
 | **REPORTING** | Reports | `/admin/reports` | `report:export` | `POST /admin/reports/*` (`report:export`; financial requires `analytics:view_finance`) |
 | **REPORTING** | Expenses | `/admin/expenses` | `expense:manage` | `GET/POST /admin/expenses` (`expense:manage`) |
 | **MANAGEMENT** | CMS | `/admin/cms` | `banner:manage`, `page:manage`, `settings:read` | `bannersRouter` (`banner:manage`), `pagesRouter` (`page:manage`) |
-| **MANAGEMENT** | Notifications | `/admin/notifications` | `notification:read`, `notification:send` | `GET /admin/notifications` (`notification:read`) |
+| **MANAGEMENT** | Notifications | `/admin/notifications` | `notification:read`, `notification:send`, `notification:manage` | `GET /admin/notifications` (`notification:read`) — **Active** |
 | **MANAGEMENT** | Staff | `/admin/staff` | `user:read`, `user:manage` | `GET /users` (`user:read`) |
 | **MANAGEMENT** | Roles & Permissions | `/admin/roles-permissions` | `role:read`, `role:update`, `role:create` | `GET /roles`, `GET /permissions` (`role:read`) |
-| **MANAGEMENT** | Audit Logs | `/admin/audit-logs` | `audit:view` | Backend module not implemented yet (`BACKEND_GAPS.md` BG-02) |
+| **MANAGEMENT** | Audit Logs | `/admin/audit-logs` | `audit:view` | `GET /admin/audit-logs` (`audit:view`) — **Active** |
 | **MANAGEMENT** | Settings | `/admin/settings` | `settings:read`, `settings:update` | `GET /settings/:group` (`settings:read`), `PATCH /settings/:group` (`settings:update`) |
 
 ---
@@ -49,4 +50,3 @@
 | Inventory Valuation (`stockValue`, `damageValue`, `netStockValue`) | `inventory:view_cost` | Render `"No access"` on valuation KPI cards; never render `৳0.00`. |
 | Order Item `costPrice` & Margin | `order:view_cost` | Omit cost/margin columns in Order Detail view. |
 | Report Customer PII Columns (Phone, Email, Address) | `report:export_pii` | Backend masks/omits PII columns automatically; UI shows notice when `report:export_pii` is absent. |
-

@@ -9,10 +9,8 @@ export interface AuthUserSummary {
   phone?: string | null;
   avatarUrl?: string | null;
   roles: string[];
-  /**
-   * Optional granular permission slugs when resolved via /roles or /permissions endpoints
-   */
   permissions?: string[];
+  isSuperAdmin?: boolean;
 }
 
 export interface AdminLoginRequest {
