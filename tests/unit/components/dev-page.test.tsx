@@ -15,15 +15,13 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('/admin/dev/components Production Guard', () => {
-  const originalEnv = process.env.NODE_ENV;
-
   afterEach(() => {
-    process.env.NODE_ENV = originalEnv;
+    vi.unstubAllEnvs();
     vi.clearAllMocks();
   });
 
   it('triggers notFound() when NODE_ENV is production', () => {
-    process.env.NODE_ENV = 'production';
+    vi.stubEnv('NODE_ENV', 'production');
 
     expect(() => {
       render(
@@ -37,7 +35,7 @@ describe('/admin/dev/components Production Guard', () => {
   });
 
   it('renders showcase page when NODE_ENV is not production', () => {
-    process.env.NODE_ENV = 'development';
+    vi.stubEnv('NODE_ENV', 'development');
 
     render(
       <AppProviders>

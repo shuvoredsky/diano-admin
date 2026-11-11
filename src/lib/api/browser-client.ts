@@ -7,6 +7,7 @@ import axios, {
 import { publicEnv } from '@/config/env';
 import { AUTH_HEADERS } from '@/constants/auth';
 import { clearAccessToken, getAccessToken, setAccessToken } from '@/lib/auth/token-store';
+import { emitSessionExpired, emitTokenRefreshed } from '@/lib/auth/auth-events';
 import { ApiClientError } from './api-error';
 import type { ApiErrorResponse, ApiSuccessResponse } from '@/types/api.types';
 import type { AuthSuccessPayload } from '@/types/auth.types';
@@ -15,6 +16,7 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
 }
 
+// Single-flight refresh queue state
 let isRefreshing = false;
 let pendingQueue: Array<{
   resolve: (token: string) => void;
@@ -22,14 +24,44 @@ let pendingQueue: Array<{
 }> = [];
 
 function processPendingQueue(error: unknown, newToken: string | null = null): void {
-  for (const prom of pendingQueue) {
+  for (const item of pendingQueue) {
     if (error || !newToken) {
-      prom.reject(error);
+      item.reject(error);
     } else {
-      prom.resolve(newToken);
+      item.resolve(newToken);
     }
   }
   pendingQueue = [];
+}
+
+// Multi-tab synchronization via BroadcastChannel (safe fallback when unsupported)
+const AUTH_SYNC_CHANNEL_NAME = 'diano_auth_sync';
+let authSyncChannel: BroadcastChannel | null = null;
+
+if (typeof window !== 'undefined' && typeof BroadcastChannel !== 'undefined') {
+  try {
+    authSyncChannel = new BroadcastChannel(AUTH_SYNC_CHANNEL_NAME);
+    authSyncChannel.onmessage = (event: MessageEvent) => {
+      const data = event.data;
+      if (data?.type === 'TOKEN_REFRESHED' && typeof data.token === 'string') {
+        setAccessToken(data.token);
+        emitTokenRefreshed(data.token);
+      } else if (data?.type === 'SESSION_EXPIRED') {
+        clearAccessToken();
+        emitSessionExpired(data.returnTo);
+      }
+    };
+  } catch {
+    authSyncChannel = null;
+  }
+}
+
+function broadcastAuthEvent(payload: { type: 'TOKEN_REFRESHED'; token: string } | { type: 'SESSION_EXPIRED'; returnTo?: string }): void {
+  try {
+    authSyncChannel?.postMessage(payload);
+  } catch {
+    // Ignore cross-context broadcast errors
+  }
 }
 
 /**
@@ -74,10 +106,49 @@ export function normalizeAxiosError(error: unknown): ApiClientError {
 }
 
 /**
+ * Executes a single-flight refresh operation with multi-tab lock protection.
+ */
+async function executeTokenRefresh(): Promise<string> {
+  const performDirectRefresh = async (): Promise<string> => {
+    // Call same-origin Next.js BFF Route Handler to rotate the HttpOnly cookie and get new access token
+    const refreshResponse = await axios.post<ApiSuccessResponse<AuthSuccessPayload>>(
+      '/api/auth/refresh',
+      {},
+      { withCredentials: true, timeout: 15000 }
+    );
+
+    const refreshedToken = refreshResponse.data.data?.accessToken;
+    if (!refreshedToken) {
+      throw new Error('Refresh response did not return an access token');
+    }
+
+    setAccessToken(refreshedToken);
+    emitTokenRefreshed(refreshedToken);
+    broadcastAuthEvent({ type: 'TOKEN_REFRESHED', token: refreshedToken });
+
+    return refreshedToken;
+  };
+
+  // Multi-tab safety: if navigator.locks is supported, ensure only 1 tab executes rotation at a time
+  if (typeof navigator !== 'undefined' && 'locks' in navigator && typeof navigator.locks.request === 'function') {
+    return navigator.locks.request('diano_auth_refresh_lock', async () => {
+      // If another tab refreshed while we waited for the lock, an access token may already be present
+      const currentToken = getAccessToken();
+      if (currentToken) {
+        return currentToken;
+      }
+      return performDirectRefresh();
+    });
+  }
+
+  return performDirectRefresh();
+}
+
+/**
  * Browser-side Axios instance configured for DIANO backend communication.
  * - Attaches in-memory Bearer access token automatically.
  * - Enables `withCredentials: true` for HttpOnly `diano_refresh_token` rotation.
- * - Handles single-flight 401 token refresh via `/auth/refresh`.
+ * - Handles single-flight 401 token refresh via BFF `/api/auth/refresh`.
  */
 export const browserApiClient: AxiosInstance = axios.create({
   baseURL: publicEnv.NEXT_PUBLIC_API_BASE_URL,
@@ -106,13 +177,17 @@ browserApiClient.interceptors.response.use(
       return Promise.reject(normalizeAxiosError(error));
     }
 
+    // Never retry auth endpoints to prevent infinite retry loops
+    const requestUrl = originalRequest.url || '';
     const isAuthEndpoint =
-      originalRequest.url?.includes('/auth/login') ||
-      originalRequest.url?.includes('/auth/admin/login') ||
-      originalRequest.url?.includes('/auth/refresh');
+      requestUrl.includes('/auth/login') ||
+      requestUrl.includes('/auth/admin/login') ||
+      requestUrl.includes('/auth/refresh') ||
+      requestUrl.includes('/api/auth');
 
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
+        // Enqueue concurrent 401s into single-flight pending queue
         return new Promise<string>((resolve, reject) => {
           pendingQueue.push({ resolve, reject });
         })
@@ -127,26 +202,16 @@ browserApiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Attempt silent refresh via BFF route handler (/api/auth/refresh) when in browser,
-        // or direct backend /auth/refresh endpoint
-        const refreshResponse = await axios.post<ApiSuccessResponse<AuthSuccessPayload>>(
-          `${publicEnv.NEXT_PUBLIC_API_BASE_URL}/auth/refresh`,
-          {},
-          { withCredentials: true, timeout: 15000 },
-        );
-
-        const refreshedToken = refreshResponse.data.data?.accessToken;
-        if (!refreshedToken) {
-          throw new Error('Refresh endpoint did not return a valid accessToken');
-        }
-
-        setAccessToken(refreshedToken);
+        const refreshedToken = await executeTokenRefresh();
         processPendingQueue(null, refreshedToken);
 
         originalRequest.headers.set(AUTH_HEADERS.AUTHORIZATION, `Bearer ${refreshedToken}`);
         return browserApiClient(originalRequest);
       } catch (refreshErr) {
         clearAccessToken();
+        const returnTo = typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : undefined;
+        emitSessionExpired(returnTo);
+        broadcastAuthEvent({ type: 'SESSION_EXPIRED', returnTo });
         processPendingQueue(refreshErr, null);
         return Promise.reject(normalizeAxiosError(refreshErr));
       } finally {
@@ -202,4 +267,3 @@ export const api = {
     return res.data;
   },
 };
-
