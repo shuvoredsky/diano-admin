@@ -1,16 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
-import { evaluateProxyRequest, sanitizeReturnUrl } from '@/lib/auth/proxy-guard';
+import { evaluateProxyRequest, sanitizeReturnUrl, sanitizeReturnTo } from '@/lib/auth/proxy-guard';
 
 describe('Next.js 16 Proxy Guard & Open-Redirect Sanitizer', () => {
-  it('blocks external and protocol-relative returnUrl values', () => {
+  it('blocks external, protocol-relative, and dangerous scheme returnTo values', () => {
     expect(sanitizeReturnUrl('https://evil.example.com')).toBe('/admin');
     expect(sanitizeReturnUrl('//evil.example.com')).toBe('/admin');
     expect(sanitizeReturnUrl('/\\evil.example.com')).toBe('/admin');
-    expect(sanitizeReturnUrl('/admin/orders?page=2')).toBe('/admin/orders?page=2');
+    expect(sanitizeReturnUrl('/admin\\evil.com')).toBe('/admin');
+    expect(sanitizeReturnUrl('javascript:alert(1)')).toBe('/admin');
+    expect(sanitizeReturnUrl('data:text/html,<script>evil()</script>')).toBe('/admin');
+    expect(sanitizeReturnTo('/admin/orders?page=2')).toBe('/admin/orders?page=2');
   });
 
-  it('redirects unauthenticated requests for /admin/* to /login with returnUrl', () => {
+  it('redirects unauthenticated requests for /admin/* to /login with returnTo', () => {
     const decision = evaluateProxyRequest({
       pathname: '/admin/products',
       search: '?page=3',
@@ -18,7 +21,7 @@ describe('Next.js 16 Proxy Guard & Open-Redirect Sanitizer', () => {
     });
     expect(decision).toEqual({
       action: 'redirect',
-      destination: '/login?returnUrl=%2Fadmin%2Fproducts%3Fpage%3D3',
+      destination: '/login?returnTo=%2Fadmin%2Fproducts%3Fpage%3D3',
     });
   });
 

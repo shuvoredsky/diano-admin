@@ -7,7 +7,9 @@ export interface ProxyDecision {
 }
 
 /**
- * Validates that a return URL is a safe relative internal path and prevents open-redirect attacks.
+ * Validates that a return URL/path is a safe relative internal path and strictly prevents open-redirect attacks.
+ * Rejects external hosts, protocol schemes (https:, javascript:, data:), protocol-relative slashes (//),
+ * backslashes (/\ or \\), and control characters.
  */
 export function sanitizeReturnUrl(rawReturnUrl: string | null | undefined): string {
   if (!rawReturnUrl) {
@@ -15,25 +17,38 @@ export function sanitizeReturnUrl(rawReturnUrl: string | null | undefined): stri
   }
 
   const trimmed = rawReturnUrl.trim();
-  // Must start with a single '/' and not '//' or '/\' or contain protocol schemes
-  if (!trimmed.startsWith('/') || trimmed.startsWith('//') || trimmed.startsWith('/\\')) {
+
+  // Must start with a single '/' and not '//' or '/\' or contain any backslashes
+  if (!trimmed.startsWith('/') || trimmed.startsWith('//') || trimmed.startsWith('/\\') || trimmed.includes('\\')) {
     return ADMIN_ROUTES.ROOT;
   }
 
+  // Reject any URI scheme e.g. javascript:, data:, https:
   if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(trimmed)) {
     return ADMIN_ROUTES.ROOT;
+  }
+
+  // Reject whitespace or ASCII control characters
+  for (let i = 0; i < trimmed.length; i++) {
+    const code = trimmed.charCodeAt(i);
+    if (code <= 32 || code === 127) {
+      return ADMIN_ROUTES.ROOT;
+    }
   }
 
   return trimmed;
 }
 
+export const sanitizeReturnTo = sanitizeReturnUrl;
+
 /**
  * Pure, lightweight optimistic route interception evaluator used by Next.js 16 `proxy.ts`.
  *
- * SECURITY NOTE:
- * - Cookie presence (`diano_refresh_token`) is ONLY an optimistic signal for route redirection.
- * - It is NEVER treated as proof of a valid authenticated session or authorization.
- * - Actual session validity and RBAC permissions are verified server-side and by diano-server.
+ * ARCHITECTURAL & SECURITY NOTE:
+ * - Cookie presence (`diano_refresh_token`) is strictly an OPTIMISTIC UI SIGNAL for route redirection.
+ * - It is NEVER treated as proof of authorization or a valid session.
+ * - Actual authentication and RBAC permissions are enforced server-side by diano-server on every API request
+ *   and verified by client AuthGate before rendering administrative screens.
  */
 export function evaluateProxyRequest(params: {
   pathname: string;
@@ -49,13 +64,13 @@ export function evaluateProxyRequest(params: {
     (authPath) => pathname === authPath || pathname.startsWith(`${authPath}/`),
   );
 
-  // 1. Unauthenticated access to protected /admin/* route -> redirect to /login?returnUrl=...
+  // 1. Unauthenticated access to protected /admin/* route -> redirect to /login?returnTo=...
   if (isProtectedAdminRoute && !hasRefreshCookie) {
     const intendedPath = sanitizeReturnUrl(`${pathname}${search}`);
-    const encodedReturnUrl = encodeURIComponent(intendedPath);
+    const encodedReturnTo = encodeURIComponent(intendedPath);
     return {
       action: 'redirect',
-      destination: `${AUTH_ROUTES.LOGIN}?returnUrl=${encodedReturnUrl}`,
+      destination: `${AUTH_ROUTES.LOGIN}?returnTo=${encodedReturnTo}`,
     };
   }
 
@@ -71,4 +86,3 @@ export function evaluateProxyRequest(params: {
 }
 
 export { AUTH_COOKIE_NAMES };
-

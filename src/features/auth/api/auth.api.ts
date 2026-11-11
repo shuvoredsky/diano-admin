@@ -1,7 +1,7 @@
 import axios from 'axios';
-
 import { api } from '@/lib/api/browser-client';
-import { setAccessToken } from '@/lib/auth/token-store';
+import { setAccessToken, clearAccessToken } from '@/lib/auth/token-store';
+import { emitSessionExpired, emitTokenRefreshed } from '@/lib/auth/auth-events';
 import type { ApiSuccessResponse } from '@/types/api.types';
 import type {
   AuthSessionResponse,
@@ -12,19 +12,48 @@ import type {
 } from '../types/auth.types';
 
 /**
- * Executes admin login via the same-origin Next.js BFF Route Handler (/api/auth/admin/login)
- * so the HttpOnly refresh cookie is bound to the Next.js origin (Path=/) and the short-lived
- * access token is stored exclusively in memory.
+ * Executes admin login via the same-origin Next.js BFF Route Handler (/api/auth/admin/login).
+ * The HttpOnly refresh cookie is bound to the Next.js origin and the short-lived access token
+ * is stored exclusively in memory.
  */
 export async function loginAdmin(credentials: LoginCredentials): Promise<AuthSessionResponse> {
-  const response = await axios.post<ApiSuccessResponse<AuthSessionResponse>>(
-    '/api/auth/admin/login',
-    credentials,
-    { withCredentials: true }
-  );
-  const session = response.data.data;
-  setAccessToken(session.accessToken);
-  return session;
+  try {
+    const response = await axios.post<ApiSuccessResponse<AuthSessionResponse>>(
+      '/api/auth/admin/login',
+      credentials,
+      { withCredentials: true }
+    );
+    const session = response.data.data;
+    if (!session?.accessToken) {
+      throw new Error('Authentication response did not return a valid session');
+    }
+    setAccessToken(session.accessToken);
+    emitTokenRefreshed(session.accessToken);
+    return session;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const data = error.response?.data;
+      const msg = typeof data?.message === 'string' ? data.message : '';
+
+      if (status === 401) {
+        throw new Error('Invalid email or password', { cause: error });
+      }
+      if (status === 403) {
+        throw new Error(msg || 'Access denied. Administrator privileges required.', { cause: error });
+      }
+      if (status === 429) {
+        throw new Error(msg || 'Too many login attempts. Please try again later.', { cause: error });
+      }
+      if (msg) {
+        throw new Error(msg, { cause: error });
+      }
+    }
+    if (error instanceof Error && error.message !== 'Network Error') {
+      throw error;
+    }
+    throw new Error('Unable to connect to the authentication server. Please check your connection.', { cause: error });
+  }
 }
 
 /**
@@ -37,18 +66,27 @@ export async function refreshAdminSession(): Promise<AuthSessionResponse> {
     { withCredentials: true }
   );
   const session = response.data.data;
+  if (!session?.accessToken) {
+    throw new Error('Refresh response did not return an access token');
+  }
   setAccessToken(session.accessToken);
+  emitTokenRefreshed(session.accessToken);
   return session;
 }
 
 /**
- * Logs out the current admin session and clears both the HttpOnly refresh cookie and in-memory token.
+ * Logs out the current admin session.
+ * Clears the HttpOnly refresh cookie via BFF and clears client in-memory token and caches.
+ * Client state is always cleared even if the upstream network call fails.
  */
 export async function logoutAdmin(): Promise<void> {
   try {
     await axios.post('/api/auth/logout', {}, { withCredentials: true });
+  } catch {
+    // Ignore network failures during logout - client must still be cleaned up
   } finally {
-    setAccessToken(null);
+    clearAccessToken();
+    emitSessionExpired();
   }
 }
 
