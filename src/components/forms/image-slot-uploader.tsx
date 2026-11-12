@@ -50,12 +50,12 @@ export function ImageSlotUploader({
     if (!files || files.length === 0) return;
 
     if (slot === 'gallery') {
-      const validFiles = Array.from(files).filter(f => f.size <= 2 * 1024 * 1024);
+      const validFiles = Array.from(files);
       if (onFilesSelect) onFilesSelect(validFiles);
     } else {
       const file = files[0];
-      if (file && file.size <= 2 * 1024 * 1024) {
-        if (onFileSelect) onFileSelect(file);
+      if (file && onFileSelect) {
+        onFileSelect(file);
       }
     }
   };
