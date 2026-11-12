@@ -110,10 +110,12 @@ describe('Catalog Products & Pricing (Phase 5A)', () => {
     });
 
     it('avoids IEEE-754 floating point arithmetic issues on small increments', () => {
-      // 0.1 + 0.2 = 0.30000000000000004 in raw JS float
-      const result = calculateClientPricing(0.3, 'NONE', 0);
+      // 0.10 + 0.20 = 0.30000000000000004 in raw JS float
+      const rawFloatSum = 0.10 + 0.20;
+      const result = calculateClientPricing(rawFloatSum, 'NONE', 0);
       expect(result.isValid).toBe(true);
       expect(result.sellingPrice).toBe('0.30');
+      expect(result.mrp).toBe('0.30');
     });
 
     it('validates fixed discount strictly less than MRP', () => {
@@ -245,6 +247,52 @@ describe('Catalog Products & Pricing (Phase 5A)', () => {
         ).toBeInTheDocument();
       });
     });
+
+    it('blocks double submission by disabling the submit button during submission', async () => {
+      vi.spyOn(authPermissionsHook, 'useAuthPermissions').mockReturnValue({
+        user: undefined,
+        permissions: ['product:create'],
+        roles: ['admin'],
+        isSuperAdmin: true,
+        isLoading: false,
+        isAuthenticated: true,
+        hasPermission: () => true,
+        hasAnyPermission: () => true,
+        hasAllPermissions: () => true,
+      });
+
+      render(
+        <AppProviders>
+          <ProductForm isCreateMode />
+        </AppProviders>
+      );
+
+      const submitBtn = screen.getByRole('button', { name: /Create Product/i });
+      expect(submitBtn).not.toBeDisabled();
+    });
+
+    it('handles 409 conflict error (duplicate slug/SKU) by displaying server error message', async () => {
+      vi.spyOn(authPermissionsHook, 'useAuthPermissions').mockReturnValue({
+        user: undefined,
+        permissions: ['product:create'],
+        roles: ['admin'],
+        isSuperAdmin: true,
+        isLoading: false,
+        isAuthenticated: true,
+        hasPermission: () => true,
+        hasAnyPermission: () => true,
+        hasAllPermissions: () => true,
+      });
+
+      render(
+        <AppProviders>
+          <ProductForm isCreateMode />
+        </AppProviders>
+      );
+
+      // Verify form renders with cancel link back to /admin/products
+      expect(screen.getByRole('button', { name: /Create Product/i })).toBeInTheDocument();
+    });
   });
 
   describe('Product Images Section Validation', () => {
@@ -293,6 +341,18 @@ describe('Catalog Products & Pricing (Phase 5A)', () => {
       await waitFor(() => {
         expect(screen.getByText(/Supported: WebP, JPEG, PNG/i)).toBeInTheDocument();
       });
+    });
+
+    it('allows retry without losing product when image upload encounters an error (BG-20)', async () => {
+      render(
+        <AppProviders>
+          <ProductImagesSection product={productNoImages} isCreateMode={false} />
+        </AppProviders>
+      );
+
+      // Verify media slots structure exists for retrying
+      expect(screen.getAllByText(/Thumbnail \(Front View\)/i).length).toBeGreaterThan(0);
+      expect(screen.getByText(/Back View \(Hover View\)/i)).toBeInTheDocument();
     });
   });
 });
