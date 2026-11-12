@@ -13,7 +13,8 @@
 | **Phase 2** | **DESIGN SYSTEM + SHELL:** Mint/forest CSS tokens (`#DCEFE3`, `#15965F`, `#146B45`, `#F2FAF6`), light/dark themes, collapsible sidebar, top header, breadcrumbs, `PageHeader`, reusable components (`DataTable`, `FilterBar`, `DateRangePicker`, `KpiCard`, `ChartCard`, `StatusBadge`, `MoneyText`, `DateText`, `ConfirmDialog`, `PermissionGate`, etc.), `/dev/components` preview + RTL tests | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (12 files / 46 passed), `build` (34/34 pages + Proxy) |
 | **Phase 3** | **AUTH:** `/login` UI, Redux in-memory token, single-flight refresh queue, session bootstrap (`/auth/refresh` -> `/auth/me`), `proxy.ts` + client guards, permission-filtered navigation, 401/403 pages, logout/logout-all, Socket.IO connect/disconnect lifecycle + tests | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (17 files / 66 passed), `build` (34/34 pages + Proxy) |
 | **Phase 4** | **DASHBOARD:** Greeting, Dhaka date, period selector (`today`..`custom`), compare toggle, 12 KPI cards, Recharts analytics charts, top products/customers, recent orders, low-stock, abandoned summary, fraud alerts + tests | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (19 files / 88 passed), `build` (34/34 pages + Proxy) |
-| **Phase 5** | **CATALOG + INVENTORY:** Products list/create/edit/details (`form-options`, dynamic spec schema, MRP/discount pricing, variants, Cloudinary slots, publish gate), Categories tree & spec template editor, Inventory overview/movements/receive/adjust/damage/transfer, Suppliers, Purchase Orders, Stock Audits | PENDING | — |
+| **Phase 5A** | **CATALOG (Categories & Products):** Categories tree (3-level depth, safe reassign delete, spec templates), Products list (paginated, debounced search, category/status/stock filters, BDT MoneyText, Dhaka dates), Product create/edit forms (multi-tab, live Decimal pricing calculator, dynamic specs, variants, SEO snippet preview, dirty guard, double-submit block, publish verification), Media slots (thumbnail, backview, gallery reorder, 5MB MIME validation) | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (21 files / 103 passed), `build` (34/34 pages + Proxy) |
+| **Phase 5B** | **INVENTORY:** Inventory overview/movements/receive/adjust/damage/transfer, Suppliers, Purchase Orders, Stock Audits | PENDING | — |
 | **Phase 6** | **ORDERS, ABANDONED, CUSTOMERS:** Orders list/detail/state-machine transitions/timeline/notes/invoice PDF, Abandoned checkouts list/stats/recovery with consent & PII rules, Customers list/detail/notes/timeline/status | PENDING | — |
 | **Phase 7** | **PAYMENTS, FRAUD, SHIPPING, RETURNS/REFUNDS:** Payments list/detail/refund/COD mark-collected (bKash/Nagad "Coming soon"), Fraud rules/review queue/approve/reject/OTP, Shipping zones/methods/shipments, Returns & Refunds | PENDING | — |
 | **Phase 8** | **MARKETING, REVIEWS, REPORTS:** Coupons CRUD, Flash Sales, Reviews (`BACKEND_GAPS.md` honest state), Reports (`orders`, `sales`, `inventory`, `customers`, `financial` CSV/XLSX/PDF blob downloads + 413 handling), Expenses CRUD | PENDING | — |
@@ -105,6 +106,38 @@
   - Total test suite: 19 test files, 88 tests passing (0 failed, 0 skipped).
   - TypeScript: 0 errors (`tsc --noEmit`).
   - ESLint: 0 warnings, 0 errors.
+
+---
+
+## Phase 5A Delivery Summary (Completed 2026-11-12)
+- **Categories Architecture & Management** (`/admin/categories`):
+  - 3-level hierarchical tree view (`Root (Depth 1)`, `Subcategory (Depth 2)`, `Child (Depth 3)`) with collapsible nodes, active status toggling, and reordering.
+  - Category create and edit modal with depth limits strictly preventing >3 level nesting.
+  - Soft-delete dialog enforcing backend safety rules: requires target `reassignToId` when category has active products or subcategories.
+  - Specification template attribute editor (`text`, `select`, `number`) with drag/sort order and required toggles.
+- **Products Catalog List** (`/admin/products`):
+  - Server-side paginated `DataTable` with thumbnail previews, product names, SKU badges, hierarchical categories, `MoneyText` (৳ BDT) prices, and `DateText` (Asia/Dhaka).
+  - `ProductsFilterBar` with debounced search (`q`), category selector, status filter, stock availability, and multi-field sorting synced with URL search parameters via `useTableQueryParams`.
+  - Permission-gated actions: edit (`product:update`), status transition (`product:publish`), featured toggle (`product:update`), delete with confirmation (`product:delete`).
+- **Product Create & Edit Master Form** (`/admin/products/new`, `/admin/products/:id`):
+  - Multi-tab sections: Basic Info, Pricing & Discounts, Variants, Dynamic Specifications, Media Slots, SEO & Search.
+  - Real-time client-side pricing calculator (`calculateClientPricing`) implementing pure Decimal precision arithmetic (half-up rounding, IEEE-754 safety) for percentage discounts, fixed discounts, and cost price warnings.
+  - Dynamic variant row manager with SKU regex validation, compareAtPrice &ge; price rule, and confidential `costPrice` gating (`product:view_cost`).
+  - Dynamic category-driven specification fields loaded from `GET /categories/:id/product-form-schema`.
+  - Google SERP search result snippet preview with slug and meta descriptions.
+  - Dirty form guard (`useDirtyFormGuard`), double-submission blocking, and backend validation error mapping (`mapBackendValidationErrors`).
+  - Publish guard preventing transition to `ACTIVE` without category, variants, valid SKU, or thumbnail.
+- **Media Slots** (Cloudinary Integration):
+  - Multi-slot uploader supporting Thumbnail (Front view), Back View, and Gallery slots.
+  - Client-side validation enforcing 5MB max file size and WebP, JPEG, PNG MIME types with user-friendly alerts.
+  - Gallery image reordering (`PUT /products/:id/images/reorder`) and single image deletion (`DELETE /products/:id/images/:imageId`).
+- **Verification & Tests**:
+  - `tests/unit/catalog/categories.test.tsx`: 5 tests verifying tree depth, permission protection, reassign deletion, and spec templates.
+  - `tests/unit/catalog/products.test.tsx`: 10 tests verifying pure Decimal pricing math, table rendering and permission gates, publish requirement guards, and 5MB / MIME media validations.
+  - Total test suite: 21 test files, 103 tests passing (0 failed, 0 skipped).
+  - TypeScript: 0 errors (`tsc --noEmit`).
+  - ESLint: 0 warnings, 0 errors.
+
 
 
 
