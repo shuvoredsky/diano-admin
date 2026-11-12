@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { SuppliersManager } from '@/features/suppliers';
 
 export const metadata: Metadata = {

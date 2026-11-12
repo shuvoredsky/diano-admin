@@ -1,4 +1,4 @@
-﻿export * from './types/inventory.types';
+export * from './types/inventory.types';
 export * from './api/inventory.api';
 export * from './hooks/use-inventory-queries';
 export * from './components/inventory-summary-cards';

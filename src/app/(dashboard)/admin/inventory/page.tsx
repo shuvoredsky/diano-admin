@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { InventoryManager } from '@/features/inventory';
 
 export const metadata: Metadata = {
