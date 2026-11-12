@@ -1,17 +1,11 @@
-﻿import type { Metadata } from 'next';
-
-import { RoutePlaceholder } from '@/components/shared/route-placeholder';
+import type { Metadata } from 'next';
+import { ProductsListView } from '@/features/products';
 
 export const metadata: Metadata = {
-  title: 'Products',
+  title: 'Products | DIANO Admin',
+  description: 'Manage catalog products, variants, pricing and media',
 };
 
-export default function AdminRoutePage() {
-  return (
-    <RoutePlaceholder
-      title="Products"
-      route="/admin/products"
-      description="Catalog management, variants, pricing, and Cloudinary media slots foundation."
-    />
-  );
+export default function AdminProductsPage() {
+  return <ProductsListView />;
 }

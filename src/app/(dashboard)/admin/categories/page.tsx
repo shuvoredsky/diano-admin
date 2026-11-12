@@ -1,4 +1,4 @@
-﻿import { CategoriesManager } from '@/features/categories/components/categories-manager';
+import { CategoriesManager } from '@/features/categories/components/categories-manager';
 
 export const metadata = {
   title: 'Categories | DIANO Admin',

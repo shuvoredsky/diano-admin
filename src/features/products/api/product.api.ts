@@ -1,27 +1,12 @@
-import { api } from '@/lib/api/browser-client';
-import type { ApiSuccessResponse } from '@/types/api.types';
-import type { ProductListFilterParams, ProductSummaryItem } from '../types/product.types';
+export * from './products.api';
+import { fetchAdminProducts, fetchAdminProductById } from './products.api';
 
 /**
- * Fetches paginated admin product catalog from GET /api/v1/products/admin.
+ * @deprecated Use fetchAdminProducts instead
  */
-export async function getAdminProducts(
-  params: ProductListFilterParams = {},
-  signal?: AbortSignal
-): Promise<ApiSuccessResponse<ProductSummaryItem[]>> {
-  return api.get<ProductSummaryItem[]>('/products/admin', {
-    params,
-    signal,
-  });
-}
+export const getAdminProducts = fetchAdminProducts;
 
 /**
- * Fetches a single admin product by ID from GET /api/v1/products/admin/:id.
+ * @deprecated Use fetchAdminProductById instead
  */
-export async function getAdminProductById(
-  productId: string,
-  signal?: AbortSignal
-): Promise<ProductSummaryItem> {
-  const response = await api.get<ProductSummaryItem>(`/products/admin/${productId}`, { signal });
-  return response.data;
-}
+export const getAdminProductById = fetchAdminProductById;

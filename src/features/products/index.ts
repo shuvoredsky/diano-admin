@@ -1,6 +1,6 @@
-export * from './api/product.api';
-export * from './api/product.queries';
-export * from './constants/product.constants';
-export * from './schemas/product.schema';
-export * from './types/product.types';
-
+export * from './types/products.types';
+export * from './api/products.api';
+export * from './hooks/use-products-queries';
+export * from './components/products-filter-bar';
+export * from './components/products-table';
+export * from './components/products-list-view';
