@@ -1,2 +1,9 @@
-﻿export const INVENTORY_FEATURE_KEY = 'inventory' as const;
-
+﻿export * from './types/inventory.types';
+export * from './api/inventory.api';
+export * from './hooks/use-inventory-queries';
+export * from './components/inventory-summary-cards';
+export * from './components/stock-table';
+export * from './components/stock-filter-bar';
+export * from './components/stock-movements-table';
+export * from './components/adjust-stock-modal';
+export * from './components/inventory-manager';

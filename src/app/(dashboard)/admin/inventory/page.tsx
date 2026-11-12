@@ -1,17 +1,11 @@
 ﻿import type { Metadata } from 'next';
-
-import { RoutePlaceholder } from '@/components/shared/route-placeholder';
+import { InventoryManager } from '@/features/inventory';
 
 export const metadata: Metadata = {
-  title: 'Inventory',
+  title: 'Inventory & Stock Ledger | DIANO Admin',
+  description: 'Multi-warehouse stock levels, reorder alerts, and immutable audit ledger',
 };
 
-export default function AdminRoutePage() {
-  return (
-    <RoutePlaceholder
-      title="Inventory"
-      route="/admin/inventory"
-      description="Stock levels, warehouse ledger, and low-stock threshold foundation."
-    />
-  );
+export default function InventoryPage() {
+  return <InventoryManager />;
 }
