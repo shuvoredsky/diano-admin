@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Package, AlertTriangle, History } from 'lucide-react';
+import { Package, AlertTriangle, History, ClipboardCheck } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { ErrorState } from '@/components/feedback/error-state';
 import { useTableQueryParams } from '@/lib/crud';
@@ -16,8 +16,9 @@ import { InventorySummaryCards } from './inventory-summary-cards';
 import { StockFilterBar } from './stock-filter-bar';
 import { StockTable } from './stock-table';
 import { StockMovementsTable } from './stock-movements-table';
+import { StockAuditList } from './stock-audit-list';
 
-type TabType = 'overview' | 'low-stock' | 'movements';
+type TabType = 'overview' | 'low-stock' | 'movements' | 'audits';
 
 export function InventoryManager() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -124,6 +125,19 @@ export function InventoryManager() {
           <History className="h-4 w-4" />
           <span>Stock Ledger (Audit Trail)</span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('audits')}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'audits'
+              ? 'bg-mint text-primary-deep dark:bg-mint/20 dark:text-primary shadow-2xs'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+          }`}
+        >
+          <ClipboardCheck className="h-4 w-4" />
+          <span>Physical Audits</span>
+        </button>
       </div>
 
       {/* Tab Panels */}
@@ -193,6 +207,8 @@ export function InventoryManager() {
           )}
         </div>
       )}
+
+      {activeTab === 'audits' && <StockAuditList />}
     </div>
   );
 }

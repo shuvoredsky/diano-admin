@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { PurchasesManager } from '@/features/purchases';
 
 export const metadata: Metadata = {

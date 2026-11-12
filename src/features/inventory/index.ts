@@ -7,3 +7,6 @@ export * from './components/stock-filter-bar';
 export * from './components/stock-movements-table';
 export * from './components/adjust-stock-modal';
 export * from './components/inventory-manager';
+export * from './components/stock-audit-list';
+export * from './components/start-audit-modal';
+export * from './components/audit-detail-modal';
