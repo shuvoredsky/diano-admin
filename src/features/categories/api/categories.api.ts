@@ -63,3 +63,21 @@ export async function updateSpecificationTemplate(
   return res.data;
 }
 
+export interface CategoryProductFormSchemaResponse {
+  categoryId: string;
+  categoryName: string;
+  fields: SpecificationField[];
+}
+
+export async function fetchCategoryProductFormSchema(
+  id: string,
+  signal?: AbortSignal
+): Promise<CategoryProductFormSchemaResponse> {
+  const res = await api.get<CategoryProductFormSchemaResponse>(
+    `/categories/${encodeURIComponent(id)}/product-form-schema`,
+    { signal }
+  );
+  return res.data;
+}
+
+

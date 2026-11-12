@@ -11,6 +11,7 @@ import {
   updateCategoryStatus,
   uploadCategoryImage,
   updateSpecificationTemplate,
+  fetchCategoryProductFormSchema,
 } from '../api/categories.api';
 import type {
   CategoryItem,
@@ -111,4 +112,14 @@ export function useUpdateSpecTemplateMutation() {
     },
   });
 }
+
+export function useCategoryProductFormSchemaQuery(categoryId?: string) {
+  return useQuery({
+    queryKey: ['categories', 'product-form-schema', categoryId],
+    queryFn: ({ signal }) => fetchCategoryProductFormSchema(categoryId!, signal),
+    enabled: Boolean(categoryId),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 

@@ -4,3 +4,6 @@ export * from './hooks/use-products-queries';
 export * from './components/products-filter-bar';
 export * from './components/products-table';
 export * from './components/products-list-view';
+export * from './components/product-edit-view';
+export * from './components/form/product-form';
+export * from './components/form/product-form-types';
