@@ -14,7 +14,7 @@
 | **Phase 3** | **AUTH:** `/login` UI, Redux in-memory token, single-flight refresh queue, session bootstrap (`/auth/refresh` -> `/auth/me`), `proxy.ts` + client guards, permission-filtered navigation, 401/403 pages, logout/logout-all, Socket.IO connect/disconnect lifecycle + tests | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (17 files / 66 passed), `build` (34/34 pages + Proxy) |
 | **Phase 4** | **DASHBOARD:** Greeting, Dhaka date, period selector (`today`..`custom`), compare toggle, 12 KPI cards, Recharts analytics charts, top products/customers, recent orders, low-stock, abandoned summary, fraud alerts + tests | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (19 files / 88 passed), `build` (34/34 pages + Proxy) |
 | **Phase 5A** | **CATALOG (Categories & Products):** Categories tree (3-level depth, safe reassign delete, spec templates), Products list (paginated, debounced search, category/status/stock filters, BDT MoneyText, Dhaka dates), Product create/edit forms (multi-tab, live Decimal pricing calculator, dynamic specs, variants, SEO snippet preview, dirty guard, double-submit block, publish verification), Media slots (thumbnail, backview, gallery reorder, 5MB MIME validation) | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (21 files / 103 passed), `build` (34/34 pages + Proxy) |
-| **Phase 5B** | **INVENTORY:** Inventory overview/movements/receive/adjust/damage/transfer, Suppliers, Purchase Orders, Stock Audits | PENDING | — |
+| **Phase 5B** | **INVENTORY:** Inventory overview/movements/receive/adjust/damage/transfer, Suppliers, Purchase Orders, Stock Audits | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (22 files / 113 passed), `build` (35/35 pages + Proxy) |
 | **Phase 6** | **ORDERS, ABANDONED, CUSTOMERS:** Orders list/detail/state-machine transitions/timeline/notes/invoice PDF, Abandoned checkouts list/stats/recovery with consent & PII rules, Customers list/detail/notes/timeline/status | PENDING | — |
 | **Phase 7** | **PAYMENTS, FRAUD, SHIPPING, RETURNS/REFUNDS:** Payments list/detail/refund/COD mark-collected (bKash/Nagad "Coming soon"), Fraud rules/review queue/approve/reject/OTP, Shipping zones/methods/shipments, Returns & Refunds | PENDING | — |
 | **Phase 8** | **MARKETING, REVIEWS, REPORTS:** Coupons CRUD, Flash Sales, Reviews (`BACKEND_GAPS.md` honest state), Reports (`orders`, `sales`, `inventory`, `customers`, `financial` CSV/XLSX/PDF blob downloads + 413 handling), Expenses CRUD | PENDING | — |
@@ -137,6 +137,50 @@
   - Total test suite: 21 test files, 103 tests passing (0 failed, 0 skipped).
   - TypeScript: 0 errors (`tsc --noEmit`).
   - ESLint: 0 warnings, 0 errors.
+
+---
+
+## Phase 5B Delivery Summary (Completed 2026-11-12)
+- **Stock Overview & Management** (`/admin/inventory`):
+  - Summary KPI cards (`totalProducts`, `totalStockUnits`, `available`, `reserved`, `damaged`, plus `stockValue`, `damageValue`, `netStockValue` viewable only with `inventory:view_cost`).
+  - Stock table displaying on-hand, reserved, damaged, available, and dynamic stock status badges (`in stock`, `low stock`, `out of stock`).
+  - `StockFilterBar` with URL param synchronization (`search`, `warehouseId`, `categoryId`, `lowStockOnly`, `outOfStockOnly`) via `useTableQueryParams`.
+  - Manual stock adjustment & damage quarantine modal (`POST /inventory/adjust`, `POST /inventory/damage`), strictly enforcing non-zero integer quantities, minimum 3-character reason for audit compliance, and handling backend insufficient-stock error responses gracefully.
+- **Immutable Stock Ledger** (Audit Trail Guarantee):
+  - Append-only ledger displaying timestamped movements (`StockMovementsTable`).
+  - Renders movement type (`PURCHASE_RECEIPT`, `ORDER_RESERVATION`, `ORDER_RELEASE`, `ORDER_FULFILLMENT`, `ORDER_CANCELLATION`, `RETURN_RESTOCK`, `DAMAGE_ADJUSTMENT`, `AUDIT_ADJUSTMENT`, `MANUAL_ADJUSTMENT`, `TRANSFER_IN`, `TRANSFER_OUT`), quantity before/after, delta, reason, reference type, and reference ID.
+  - Strictly immutable: zero edit, delete, or modify actions exist in code or DOM.
+- **Suppliers Management** (`/admin/suppliers`):
+  - Paginated list of vendor suppliers with code, contact person, email, phone, and active status toggle.
+  - Supplier create and edit modal (`POST /suppliers`, `PATCH /suppliers/:id`) with form validation, double-submit protection, and error mapping (`mapBackendValidationErrors`).
+  - Deactivate / delete confirmation dialog (`DELETE /suppliers/:id`).
+  - Permission-gated actions (`supplier:manage`).
+- **Purchase Orders & Inbound Receiving** (`/admin/purchases`):
+  - Multi-warehouse purchase order management (`GET /purchase-orders`, `POST /purchase-orders`).
+  - Create PO modal with dynamic line items (variant selector, orderedQuantity, unitCost, live line totals, and grand total).
+  - Purchase order detail modal with complete lifecycle `Timeline` and status tracking: `DRAFT`, `ORDERED`, `PARTIALLY_RECEIVED`, `RECEIVED`, `CANCELLED`.
+  - State machine transitions strictly enforced:
+    - `DRAFT` -> `ORDERED` or `CANCELLED`.
+    - `ORDERED` -> `PARTIALLY_RECEIVED` (via receive) or `CANCELLED`.
+    - Terminal states `RECEIVED` and `CANCELLED` permit no further transitions.
+  - Partial & full inbound receiving (`POST /purchase-orders/:id/receive`):
+    - Input clamping to remaining ordered quantities.
+    - Prevents double-submit with loading guards.
+    - Atomically updates stock on-hand, recalculates weighted average cost price, and logs `PURCHASE_RECEIPT` ledger entries on backend.
+- **Physical Stock Audits & Reconciliation**:
+  - Start stock audit modal (`POST /inventory/audits`) with warehouse selection and notes.
+  - Stock audit list with discrepancy counts, status (`IN_PROGRESS`, `APPROVED`, `REJECTED`), and timestamps.
+  - Audit detail & count sheet modal (`GET /inventory/audits/:id`, `POST /inventory/audits/:id/counts`):
+    - Displays recorded variants, system on-hand, counted physical stock, and calculated variance.
+    - Color-coded highlights for Shortage (negative), Surplus (positive), and Balanced (zero).
+    - Approve audit action (`POST /inventory/audits/:id/approve`): reconciles discrepancies strictly through `AUDIT_ADJUSTMENT` ledger movements; never mutates stock directly.
+    - Reject audit action (`POST /inventory/audits/:id/reject`) with optional reason.
+- **Verification & Tests**:
+  - `tests/unit/inventory/inventory.test.tsx`: 10 comprehensive tests covering stock breakdown, immutable ledger guarantee, supplier validation, PO lifecycle state transitions, inbound receiving clamping and validation, physical audit variance calculations, and insufficient stock backend error handling.
+  - Vitest: 22 test files, 113 unit tests passing (0 failed, 0 skipped).
+  - TypeScript: 0 errors (`tsc --noEmit`).
+  - ESLint: 0 warnings, 0 errors.
+
 
 
 
