@@ -1,17 +1,11 @@
 ﻿import type { Metadata } from 'next';
-
-import { RoutePlaceholder } from '@/components/shared/route-placeholder';
+import { SuppliersManager } from '@/features/suppliers';
 
 export const metadata: Metadata = {
-  title: 'Suppliers',
+  title: 'Suppliers | DIANO Admin',
+  description: 'Manage vendor directory, contact records, and purchase orders',
 };
 
-export default function AdminRoutePage() {
-  return (
-    <RoutePlaceholder
-      title="Suppliers"
-      route="/admin/suppliers"
-      description="Vendor directory and supplier contact management foundation."
-    />
-  );
+export default function SuppliersPage() {
+  return <SuppliersManager />;
 }
