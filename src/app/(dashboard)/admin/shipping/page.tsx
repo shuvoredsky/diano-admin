@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next';
+import type { Metadata } from 'next';
 
 import { RoutePlaceholder } from '@/components/shared/route-placeholder';
 

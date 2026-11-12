@@ -1,2 +1,2 @@
-﻿export const CUSTOMERS_FEATURE_KEY = 'customers' as const;
+export const CUSTOMERS_FEATURE_KEY = 'customers' as const;
 

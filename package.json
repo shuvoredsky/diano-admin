@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "next dev --turbopack -p 3001",
-    "build": "next build --webpack",
+    "build": "next build",
     "start": "next start -p 3001",
     "api:types": "node scripts/generate-api-types.mjs",
     "typecheck": "tsc --noEmit",

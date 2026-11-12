@@ -1,2 +1,2 @@
-﻿export const SHIPPING_FEATURE_KEY = 'shipping' as const;
+export const SHIPPING_FEATURE_KEY = 'shipping' as const;
 

@@ -1,2 +1,2 @@
-﻿export const RETURNS_FEATURE_KEY = 'returns' as const;
+export const RETURNS_FEATURE_KEY = 'returns' as const;
 

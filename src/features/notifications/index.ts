@@ -1,2 +1,2 @@
-﻿export const NOTIFICATIONS_FEATURE_KEY = 'notifications' as const;
+export const NOTIFICATIONS_FEATURE_KEY = 'notifications' as const;
 

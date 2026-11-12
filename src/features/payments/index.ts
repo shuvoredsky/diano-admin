@@ -1,2 +1,2 @@
-﻿export const PAYMENTS_FEATURE_KEY = 'payments' as const;
+export const PAYMENTS_FEATURE_KEY = 'payments' as const;
 

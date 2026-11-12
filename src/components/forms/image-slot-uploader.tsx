@@ -41,8 +41,8 @@ export function ImageSlotUploader({
   };
 
   const defaultDescriptions: Record<ImageSlot, string> = {
-    thumbnail: 'Primary catalog and search card display image. Max 2MB (WebP, JPEG).',
-    backview: 'Secondary hover view for apparel catalog. Max 2MB.',
+    thumbnail: 'Primary catalog and search card display image. Max 5MB (WebP, JPEG, PNG).',
+    backview: 'Secondary hover view for apparel catalog. Max 5MB.',
     gallery: 'Additional detail, model, and lifestyle shots. Up to 6 slots.',
   };
 

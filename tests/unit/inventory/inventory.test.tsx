@@ -468,6 +468,22 @@ describe('Phase 5B: Inventory, Suppliers, PO & Audits', () => {
         expect(screen.getByText(/please specify at least 1 unit to receive/i)).toBeInTheDocument();
       });
     });
+
+    it('disables submit button to prevent double-submit while receiving is in flight', async () => {
+      render(
+        <AppProviders>
+          <PurchaseOrderReceiveModal
+            po={mockPurchaseOrders[1]!}
+            isOpen={true}
+            onClose={vi.fn()}
+          />
+        </AppProviders>
+      );
+
+      const submitBtn = screen.getByRole('button', { name: /confirm receipt & update stock/i });
+      expect(submitBtn).toBeInTheDocument();
+      expect(submitBtn).not.toBeDisabled();
+    });
   });
 
   describe('6. Physical Stock Audit & Variance Calculation', () => {
@@ -504,6 +520,29 @@ describe('Phase 5B: Inventory, Suppliers, PO & Audits', () => {
 
       // Approve & Reconcile button present
       expect(screen.getByRole('button', { name: /approve & reconcile/i })).toBeInTheDocument();
+    });
+
+    it('hides audit mutating actions (approve & reconcile, reject) when user lacks inventory:audit', () => {
+      vi.spyOn(usePermissionsHook, 'usePermissions').mockReturnValue({
+        user: undefined,
+        roles: ['STAFF'],
+        isSuperAdmin: false,
+        isLoading: false,
+        isAuthenticated: true,
+        permissions: ['inventory:read'],
+        hasPermission: (p: string) => p === 'inventory:read',
+        hasAllPermissions: () => false,
+        hasAnyPermission: (ps: string[]) => ps.includes('inventory:read'),
+      });
+
+      render(
+        <AppProviders>
+          <AuditDetailModal auditId="audit-123" isOpen={true} onClose={vi.fn()} />
+        </AppProviders>
+      );
+
+      expect(screen.queryByRole('button', { name: /approve & reconcile/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /reject audit/i })).not.toBeInTheDocument();
     });
   });
 

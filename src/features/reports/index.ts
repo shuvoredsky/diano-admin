@@ -1,2 +1,2 @@
-﻿export const REPORTS_FEATURE_KEY = 'reports' as const;
+export const REPORTS_FEATURE_KEY = 'reports' as const;
 

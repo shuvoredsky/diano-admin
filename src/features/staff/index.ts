@@ -1,2 +1,2 @@
-﻿export const STAFF_FEATURE_KEY = 'staff' as const;
+export const STAFF_FEATURE_KEY = 'staff' as const;
 
