@@ -1,17 +1,11 @@
 import type { Metadata } from 'next';
-
-import { RoutePlaceholder } from '@/components/shared/route-placeholder';
+import { OrdersManager } from '@/features/orders';
 
 export const metadata: Metadata = {
-  title: 'Orders',
+  title: 'Orders | DIANO Admin',
+  description: 'Order lifecycle state machine, fulfillment, and invoicing',
 };
 
-export default function AdminRoutePage() {
-  return (
-    <RoutePlaceholder
-      title="Orders"
-      route="/admin/orders"
-      description="Order lifecycle state machine, fulfillment, and invoice PDF foundation."
-    />
-  );
+export default function AdminOrdersPage() {
+  return <OrdersManager />;
 }
