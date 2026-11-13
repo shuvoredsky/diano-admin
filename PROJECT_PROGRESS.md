@@ -1,7 +1,7 @@
 # DIANO Admin Dashboard — Project Progress (`PROJECT_PROGRESS.md`)
 
 **Last Updated:** 2026-11-13
-**Current Phase:** Phase 6A Complete (Orders List, Detail View, State Machine Actions with Confirmations, Authenticated PDF Invoice Download, Admin Notes & Timeline)
+**Current Phase:** Phase 6B Complete (Abandoned Checkouts List & Recovery Outreach, Customers Directory & Lifecycle Management, Shared Fixes & Verification)
 
 ---
 
@@ -15,8 +15,8 @@
 | **Phase 4** | **DASHBOARD:** Greeting, Dhaka date, period selector (`today`..`custom`), compare toggle, 12 KPI cards, Recharts analytics charts, top products/customers, recent orders, low-stock, abandoned summary, fraud alerts + tests | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (19 files / 88 passed), `build` (34/34 pages + Proxy) |
 | **Phase 5A** | **CATALOG (Categories & Products):** Categories tree (3-level depth, safe reassign delete, spec templates), Products list (paginated, debounced search, category/status/stock filters, BDT MoneyText, Dhaka dates), Product create/edit forms (multi-tab, live Decimal pricing calculator, dynamic specs, variants, SEO snippet preview, dirty guard, double-submit block, publish verification), Media slots (thumbnail, backview, gallery reorder, 5MB MIME validation) | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (21 files / 103 passed), `build` (34/34 pages + Proxy) |
 | **Phase 5B** | **INVENTORY:** Inventory overview/movements/receive/adjust/damage/transfer, Suppliers, Purchase Orders, Stock Audits | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (22 files / 113 passed), `build` (35/35 pages + Proxy) |
-| **Phase 6A** | **ORDERS:** Orders list (search, filters, pagination, URL sync), Order detail modal (customer details, delivery destination, line items, API totals), State machine transitions (`PENDING` -> `CONFIRMED` -> `PROCESSING` -> `PACKED` -> `SHIPPED` -> `DELIVERED` -> `RETURNED` -> `REFUNDED` + `CANCELLED`), `ConfirmDialog` guards, authenticated binary PDF invoice blob download, admin/customer notes, lifecycle history timeline | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (23 files / 133 passed), `build` (35/35 pages + Proxy) |
-| **Phase 6B** | **ABANDONED CHECKOUTS & CUSTOMERS:** Abandoned checkouts list/stats/recovery with consent & PII rules, Customers list/detail/notes/timeline/status | PENDING | — |
+| **Phase 6A** | **ORDERS:** Orders list (search, filters, pagination, URL sync), Order detail modal (customer details, delivery destination, line items, API totals), State machine transitions (`PENDING` -> `CONFIRMED` -> `PROCESSING` -> `PACKED` -> `SHIPPED` -> `DELIVERED` -> `RETURNED` + `CANCELLED`), `ConfirmDialog` guards, authenticated binary PDF invoice blob download, admin/customer notes, lifecycle history timeline | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (24 files / 154 passed), `build` (35/35 pages + Proxy) |
+| **Phase 6B** | **ABANDONED CHECKOUTS & CUSTOMERS:** Abandoned checkouts list/stats/recovery with consent & PII rules, Customers list/detail/notes/timeline/status | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (25 files / 165 passed), `build` (35/35 pages + Proxy) |
 | **Phase 7** | **PAYMENTS, FRAUD, SHIPPING, RETURNS/REFUNDS:** Payments list/detail/refund/COD mark-collected (bKash/Nagad "Coming soon"), Fraud rules/review queue/approve/reject/OTP, Shipping zones/methods/shipments, Returns & Refunds | PENDING | — |
 | **Phase 8** | **MARKETING, REVIEWS, REPORTS:** Coupons CRUD, Flash Sales, Reviews (`BACKEND_GAPS.md` honest state), Reports (`orders`, `sales`, `inventory`, `customers`, `financial` CSV/XLSX/PDF blob downloads + 413 handling), Expenses CRUD | PENDING | — |
 | **Phase 9** | **MANAGEMENT:** Notifications inbox + DEAD queue retry, CMS (settings groups, logo/favicon, banners, pages block editor, revisions/restore), Staff + Roles + Permissions, Audit Logs (`BACKEND_GAPS.md` honest state), Settings (read-only env status) | PENDING | — |
@@ -188,48 +188,32 @@
 
 ---
 
-## Phase 6A Delivery Summary (Completed 2026-11-13)
-- **Orders Management & Multi-Channel List** (`/admin/orders`):
-  - Server-side paginated `DataTable` displaying order number (`#ORD-XXXX`), customer name and phone, formatted Dhaka placement date, total line items count, payment status and method, order status badge, and BDT grand total (`MoneyText`).
-  - `OrdersFilterBar` with debounced search query (`q` / `search`), order status filter, payment status filter, and active filter reset synchronized with URL parameters via `useTableQueryParams`.
-  - Detail modal viewer trigger (`onViewOrder`) opening comprehensive order inspection modal.
-- **Order Detail Inspection Modal**:
-  - Customer profile snapshot (name, phone, optional email, guest checkout vs registered customer badge).
-  - Shipping & delivery destination card (recipient name, contact phone, street address, area, zone, district).
-  - Payment details card (payment provider/method, transaction ID, paid timestamp, status badge).
-  - Order items table (product name, variant name, SKU, quantity, unit price, discount, line total via `MoneyText`).
-  - Financial totals strictly derived from API response without client math (subtotal, shipping fee, discount total, tax total, grand total).
-  - Multi-shipment tracking card showing courier name, tracking number, and real-time status.
-- **State Machine Transitions (`ORDER_TRANSITION_TABLE`)**:
-  - Finite State Machine strictly enforced according to backend rules:
-    - `PENDING` -> `['CONFIRMED', 'CANCELLED']`
-    - `CONFIRMED` -> `['PROCESSING', 'CANCELLED']`
-    - `PROCESSING` -> `['PACKED', 'CANCELLED']`
-    - `PACKED` -> `['SHIPPED', 'CANCELLED']`
-    - `SHIPPED` -> `['DELIVERED']` (once shipped, cannot be cancelled directly)
-    - `DELIVERED` -> `['RETURNED']`
-    - `RETURNED` -> `['REFUNDED']`
-    - `CANCELLED`: `[]` (Terminal state)
-    - `REFUNDED`: `[]` (Terminal state)
-  - Granular RBAC permission gating (`order:confirm`, `order:update_status`, `order:ship`, `order:cancel`, `order:manage`) with super-admin bypass.
-  - Interactive `ConfirmDialog` confirmation for all state transitions, requiring mandatory cancellation reason on cancellation and optional audit note on other transitions.
-  - Double-submission blocking with mutation loading state.
-  - Graceful backend error handling displaying banner alerts without closing modal or losing state.
-- **Authenticated Binary PDF Invoicing**:
-  - `downloadAdminOrderInvoiceBlob`: fetches binary PDF directly using authenticated Axios client (`responseType: 'blob'`).
-  - Automatically parses `Content-Disposition` header for original attachment filename (`Invoice-ORD-XXXXX.pdf`).
-  - Fail-safe inspection for error responses returned as `application/json` blobs, extracting error messages cleanly.
-  - Browser blob URL trigger (`saveBlobAsFile`) for seamless automatic download.
-- **Staff Audit & Customer Notes**:
-  - Displays chronological order notes with staff author identifier, relative/absolute timestamp (`DateText`), and visibility badge (`Customer Visible` vs `Internal Note`).
-  - Add note form with `isCustomerVisible` toggle calling `POST /admin/orders/:id/notes`, refetching order details immediately on success.
-- **Lifecycle History Timeline**:
-  - Renders complete transition audit trail via shared `Timeline` component with status badges, timestamps, notes, and staff actor attribution.
+## Phase 6B Delivery Summary (Completed 2026-11-13)
+- **Part 0: Shared Fixes, Rules Merge & 6A Verification**:
+  - Merged backend rules from `../diano-server/docs/AGENT_RULES.md` into `diano-admin/docs/AGENT_RULES.md` while retaining automated push policy.
+  - Created `scripts/check-bom.mjs` verifying zero BOM markers across the workspace.
+  - Verified `.env` audit: strictly `.env.example` in repo and git history.
+  - Decimal precision in `inventory-summary-cards.tsx`: `stockValue`, `damageValue`, and `netStockValue` formatted via `MoneyText` (pure decimal strings, no `Number()` coercion), guarded by `inventory:view_cost`.
+  - Renamed `vitest.config.ts` to `vitest.config.mts` and switched `__dirname` to `import.meta.dirname`, removing native configLoader warnings.
+  - Race conditions & concurrency gaps documented in `docs/BACKEND_GAPS.md` (BG-22 PO Receive concurrency, BG-23 Stock Audit sequential adjustments, BG-24 Order REFUNDED status transition is label-only).
+  - Regression tests for `ConfirmDialog` (`tests/unit/components/confirm-dialog.test.tsx`): 4 tests covering success, rejection keeping dialog open, and rich ReactNode description without Radix hydration errors.
+  - Order Detail Modal modularization: reduced `order-detail-modal.tsx` from 698 lines to 170 lines by splitting into `order-detail-cards.tsx`, `order-items-table.tsx` (with `order:view_cost` confidential masking), `order-notes-section.tsx`, `order-timeline-section.tsx`, and `order-status-actions.tsx`.
+- **Abandoned Checkouts (`/admin/abandoned-checkouts`)**:
+  - Server-side paginated `DataTable` showing session ID, customer contact info, item count, total cart value (`MoneyText`), device icon (`MOBILE`, `DESKTOP`, `TABLET`), status badge, and last activity date.
+  - `AbandonedFilterBar` with status and date range filter inputs synchronized with URL query params via `useTableQueryParams`.
+  - `AbandonedDetailModal` inspecting customer snapshot, cart line items, total value, recovery outreach action (`POST /abandoned-checkouts/:id/recovery`), previous recovery history, and session events log.
+  - Gated recovery trigger behind `abandoned_checkout:manage`.
+- **Customers Management (`/admin/customers`)**:
+  - Server-side paginated `DataTable` showing customer name, contact details (email/phone), orders count, total spent (`MoneyText`), loyalty points, status badge, and registration date.
+  - `CustomersFilterBar` with search input (name, email, phone) and status filter select.
+  - `CustomerDetailModal` showing personal profile, lifetime order summary (spent, orders, cancelled, returned), saved delivery addresses with type badges, communication preferences / consents, staff internal notes with submission form, and account status toggle action (Suspend / Activate) guarded by `ConfirmDialog` and `customer:manage`.
 - **Verification & Tests**:
-  - `tests/unit/orders/orders.test.tsx`: 20 unit tests covering table rendering, detail modal sections, table-driven state machine transition matrix, permission gating, confirmation dialog validation, invoice blob download, and staff notes submission.
-  - Vitest: 23 test files, 133 unit tests passing (0 failed, 0 skipped).
-  - TypeScript: 0 errors (`tsc --noEmit`).
-  - ESLint: 0 warnings, 0 errors.
+  - `tests/unit/abandoned/abandoned.test.tsx`: 5 tests covering table rendering, detail modal sections, recovery outreach dispatch, and permission gating.
+  - `tests/unit/customers/customers.test.tsx`: 6 tests covering table rendering, detail modal sections, staff notes submission, status suspension action, and permission gating.
+  - `tests/unit/orders/orders.test.tsx`: 25 tests covering FSM transitions (RETURNED terminal), 403 fraud review hold error handling, confidential `order:view_cost` masking, and JSON error extraction from invoice blobs.
+  - Full test suite: 25 test files, 165 unit tests passing (0 failed, 0 skipped).
+  - Full production build: 35/35 routes prerendered with Turbopack exit code 0.
+
 
 
 
