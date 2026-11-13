@@ -8,7 +8,7 @@ export const ORDER_TRANSITION_TABLE: Record<OrderStatus, readonly OrderStatus[]>
   PACKED: ['SHIPPED', 'CANCELLED'],
   SHIPPED: ['DELIVERED'],
   DELIVERED: ['RETURNED'],
-  RETURNED: ['REFUNDED'],
+  RETURNED: [],
   CANCELLED: [],
   REFUNDED: [],
 } as const;
@@ -80,3 +80,4 @@ export function getRequiredPermissionForTransition(to: OrderStatus): string {
   if (to === 'PENDING') return 'order:create';
   return ORDER_TRANSITION_PERMISSIONS[to] || 'order:update_status';
 }
+

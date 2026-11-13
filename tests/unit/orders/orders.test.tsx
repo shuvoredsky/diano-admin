@@ -90,6 +90,7 @@ const mockOrderPending: OrderEntity = {
       variantName: 'Navy Blue / 16',
       sku: 'SHIRT-COT-NV-16',
       unitPrice: '2500.00',
+      costPrice: '1800.00',
       quantity: 1,
       discount: '0.00',
       lineTotal: '2500.00',
@@ -237,7 +238,7 @@ describe('Phase 6A: Orders Management & State Machine', () => {
       { from: 'PACKED', allowed: ['SHIPPED', 'CANCELLED'] },
       { from: 'SHIPPED', allowed: ['DELIVERED'] },
       { from: 'DELIVERED', allowed: ['RETURNED'] },
-      { from: 'RETURNED', allowed: ['REFUNDED'] },
+      { from: 'RETURNED', allowed: [] },
       { from: 'CANCELLED', allowed: [] },
       { from: 'REFUNDED', allowed: [] },
     ];
@@ -426,6 +427,105 @@ describe('Phase 6A: Orders Management & State Machine', () => {
           },
         });
       });
+    });
+
+    it('displays error banner when invoice download fails with JSON error payload', async () => {
+      setupPermissions(['order:read'], true);
+      vi.spyOn(ordersApi, 'downloadAdminOrderInvoiceBlob').mockRejectedValueOnce(
+        new Error('Invoice generation failed: order not yet confirmed')
+      );
+
+      render(
+        <AppProviders>
+          <OrderDetailModal orderId="ord-1001" isOpen={true} onClose={vi.fn()} />
+        </AppProviders>
+      );
+
+      const downloadBtn = screen.getByRole('button', { name: /invoice pdf/i });
+      fireEvent.click(downloadBtn);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Invoice generation failed: order not yet confirmed')
+        ).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('6. Confidential Cost, Fraud Reviews & Blob Error Decoding', () => {
+    it('omits / masks costPrice when user lacks order:view_cost permission', () => {
+      setupPermissions(['order:read'], false);
+
+      render(
+        <AppProviders>
+          <OrderDetailModal orderId="ord-1001" isOpen={true} onClose={vi.fn()} />
+        </AppProviders>
+      );
+
+      expect(screen.queryByTestId('th-cost-price')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('item-cost-price')).not.toBeInTheDocument();
+      expect(screen.queryByText(/1,800\.00/)).not.toBeInTheDocument();
+    });
+
+    it('renders costPrice when user has order:view_cost permission', () => {
+      setupPermissions(['order:read', 'order:view_cost'], false);
+
+      render(
+        <AppProviders>
+          <OrderDetailModal orderId="ord-1001" isOpen={true} onClose={vi.fn()} />
+        </AppProviders>
+      );
+
+      expect(screen.getByTestId('th-cost-price')).toBeInTheDocument();
+      expect(screen.getByTestId('item-cost-price')).toBeInTheDocument();
+      expect(screen.getByText(/1,800\.00/)).toBeInTheDocument();
+    });
+
+    it('displays 403 fraud hold review error banner when confirming a fraud-held order', async () => {
+      setupPermissions(['order:read', 'order:confirm'], false);
+      mockUpdateStatusMutateAsync.mockRejectedValueOnce(
+        new Error(
+          'Order is held under manual fraud review and cannot be confirmed or shipped until approved by staff.'
+        )
+      );
+
+      render(
+        <AppProviders>
+          <OrderDetailModal orderId="ord-1001" isOpen={true} onClose={vi.fn()} />
+        </AppProviders>
+      );
+
+      const confirmBtn = screen.getByRole('button', { name: /confirm order/i });
+      fireEvent.click(confirmBtn);
+
+      // ConfirmDialog opens
+      const confirmDialogBtn = screen.getByRole('button', { name: /mark as confirmed/i });
+      fireEvent.click(confirmDialogBtn);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(
+            'Order is held under manual fraud review and cannot be confirmed or shipped until approved by staff.'
+          )
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('unpacks JSON error payload when invoice response is application/json blob', async () => {
+      const mockJsonBlob = new Blob(
+        [JSON.stringify({ message: 'Order must be confirmed before invoice generation' })],
+        { type: 'application/json' }
+      );
+
+      vi.spyOn(ordersApi, 'downloadAdminOrderInvoiceBlob').mockImplementationOnce(async () => {
+        const text = await mockJsonBlob.text();
+        const parsed = JSON.parse(text) as { message?: string };
+        throw new Error(parsed.message || 'Failed to download invoice');
+      });
+
+      await expect(
+        ordersApi.downloadAdminOrderInvoiceBlob('ord-1001', 'ORD-202611-0001')
+      ).rejects.toThrow('Order must be confirmed before invoice generation');
     });
   });
 });

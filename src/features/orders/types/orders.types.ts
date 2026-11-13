@@ -146,6 +146,8 @@ export interface OrderEntity extends Record<string, unknown> {
   } | null;
 }
 
+export type OrderDetailEntity = OrderEntity;
+
 export interface OrderFilterQuery {
   page?: number;
   limit?: number;

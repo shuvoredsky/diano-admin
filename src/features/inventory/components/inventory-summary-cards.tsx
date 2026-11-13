@@ -1,8 +1,8 @@
 'use client';
 
-import { Package, CheckCircle2, Clock, AlertTriangle, DollarSign } from 'lucide-react';
+import { Package, CheckCircle2, Clock, AlertTriangle, DollarSign, ShieldAlert } from 'lucide-react';
 import { MoneyText } from '@/components/shared/money-text';
-import { useAuthPermissions } from '@/features/auth';
+import { usePermissions } from '@/hooks/use-permissions';
 import type { InventorySummaryDto } from '../types/inventory.types';
 
 export interface InventorySummaryCardsProps {
@@ -11,10 +11,10 @@ export interface InventorySummaryCardsProps {
 }
 
 export function InventorySummaryCards({ summary, isLoading }: InventorySummaryCardsProps) {
-  const { hasPermission } = useAuthPermissions();
+  const { hasPermission } = usePermissions();
   const canViewCost = hasPermission('inventory:view_cost');
 
-  const cards = [
+  const unitCards = [
     {
       title: 'Total Stock Units',
       value: summary?.totalStockUnits ?? 0,
@@ -47,8 +47,9 @@ export function InventorySummaryCards({ summary, isLoading }: InventorySummaryCa
 
   return (
     <div className="space-y-4">
+      {/* Unit Quantity Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map(card => {
+        {unitCards.map((card) => {
           const Icon = card.icon;
           return (
             <div
@@ -65,8 +66,8 @@ export function InventorySummaryCards({ summary, isLoading }: InventorySummaryCa
                 {isLoading ? (
                   <div className="h-8 w-24 bg-muted animate-pulse rounded-md" />
                 ) : (
-                  <div className="text-2xl font-bold tracking-tight text-foreground">
-                    {Number(card.value).toLocaleString('en-US')}
+                  <div className="text-2xl font-bold tracking-tight text-foreground font-mono">
+                    {card.value.toLocaleString('en-US')}
                   </div>
                 )}
                 <p className="mt-1 text-[11px] text-muted-foreground">{card.description}</p>
@@ -76,27 +77,54 @@ export function InventorySummaryCards({ summary, isLoading }: InventorySummaryCa
         })}
       </div>
 
-      {canViewCost && summary?.stockValue && (
-        <div className="flex flex-wrap items-center justify-between rounded-2xl border border-primary/20 bg-mint/10 dark:bg-mint/5 p-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-mint text-primary-deep dark:bg-mint/20 dark:text-primary">
-              <DollarSign className="h-4 w-4" />
+      {/* Confidential Financial Valuations (Gated by inventory:view_cost) */}
+      {canViewCost ? (
+        (summary?.stockValue || summary?.damageValue || summary?.netStockValue) && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 rounded-2xl border border-primary/20 bg-mint/10 dark:bg-mint/5 p-4">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-mint text-primary-deep dark:bg-mint/20 dark:text-primary">
+                <DollarSign className="h-4 w-4" />
+              </div>
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-primary-deep dark:text-primary block">
+                  Total Valuation (Gross)
+                </span>
+                <div className="text-base font-black text-primary-deep dark:text-primary">
+                  <MoneyText amount={summary.stockValue ?? '0.00'} />
+                </div>
+              </div>
             </div>
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-primary-deep dark:text-primary">
-                Total Inventory Valuation (Cost Basis)
-              </span>
-              <p className="text-[11px] text-muted-foreground">
-                Confidential financial metric viewable with inventory:view_cost
-              </p>
+
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+                <ShieldAlert className="h-4 w-4" />
+              </div>
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-destructive block">
+                  Damaged Stock Loss
+                </span>
+                <div className="text-base font-black text-destructive">
+                  <MoneyText amount={summary.damageValue ?? '0.00'} />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                  Net Active Valuation
+                </span>
+                <div className="text-base font-black text-emerald-600 dark:text-emerald-400">
+                  <MoneyText amount={summary.netStockValue ?? summary.stockValue ?? '0.00'} />
+                </div>
+              </div>
             </div>
           </div>
-          <div className="text-xl font-black text-primary-deep dark:text-primary mt-2 sm:mt-0">
-            <MoneyText amount={summary.stockValue} />
-          </div>
-        </div>
-      )}
+        )
+      ) : null}
     </div>
   );
 }
-

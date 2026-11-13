@@ -4,6 +4,7 @@ import React from 'react';
 import { AppProviders } from '@/components/providers/app-providers';
 import * as usePermissionsHook from '@/hooks/use-permissions';
 import { StockTable } from '@/features/inventory/components/stock-table';
+import { InventorySummaryCards } from '@/features/inventory/components/inventory-summary-cards';
 import { StockMovementsTable } from '@/features/inventory/components/stock-movements-table';
 import { AdjustStockModal } from '@/features/inventory/components/adjust-stock-modal';
 import { SupplierFormModal } from '@/features/suppliers/components/supplier-form-modal';
@@ -234,6 +235,77 @@ const mockPurchaseOrders: PurchaseOrderEntity[] = [
 describe('Phase 5B: Inventory, Suppliers, PO & Audits', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('0. Inventory Summary Cards & Valuation Precision', () => {
+    const mockSummary = {
+      totalProducts: 42,
+      totalStockUnits: 1500,
+      available: 1350,
+      reserved: 120,
+      damaged: 30,
+      stockValue: '4500000.50',
+      damageValue: '90000.25',
+      netStockValue: '4410000.25',
+    };
+
+    it('renders unit metrics and formats confidential decimal valuations with MoneyText when inventory:view_cost is granted', () => {
+      vi.spyOn(usePermissionsHook, 'usePermissions').mockReturnValue({
+        user: undefined,
+        roles: ['MANAGER'],
+        isSuperAdmin: false,
+        isLoading: false,
+        isAuthenticated: true,
+        permissions: ['inventory:read', 'inventory:view_cost'],
+        hasPermission: (p: string) => p === 'inventory:view_cost' || p === 'inventory:read',
+        hasAllPermissions: () => true,
+        hasAnyPermission: () => true,
+      });
+
+      render(
+        <AppProviders>
+          <InventorySummaryCards summary={mockSummary} isLoading={false} />
+        </AppProviders>
+      );
+
+      // Unit counts
+      expect(screen.getByText('1,500')).toBeInTheDocument();
+      expect(screen.getByText('1,350')).toBeInTheDocument();
+      expect(screen.getByText('120')).toBeInTheDocument();
+      expect(screen.getByText('30')).toBeInTheDocument();
+
+      // Confidential Decimal valuations rendered via MoneyText (Intl en-BD format, no floating point loss)
+      expect(screen.getByText(/4,500,000\.50/)).toBeInTheDocument();
+      expect(screen.getByText(/90,000\.25/)).toBeInTheDocument();
+      expect(screen.getByText(/4,410,000\.25/)).toBeInTheDocument();
+    });
+
+    it('hides confidential valuations when user lacks inventory:view_cost permission', () => {
+      vi.spyOn(usePermissionsHook, 'usePermissions').mockReturnValue({
+        user: undefined,
+        roles: ['STAFF'],
+        isSuperAdmin: false,
+        isLoading: false,
+        isAuthenticated: true,
+        permissions: ['inventory:read'],
+        hasPermission: (p: string) => p === 'inventory:read',
+        hasAllPermissions: () => false,
+        hasAnyPermission: () => false,
+      });
+
+      render(
+        <AppProviders>
+          <InventorySummaryCards summary={mockSummary} isLoading={false} />
+        </AppProviders>
+      );
+
+      // Unit counts still visible
+      expect(screen.getByText('1,500')).toBeInTheDocument();
+
+      // Confidential valuations must NOT be rendered
+      expect(screen.queryByText(/Total Valuation/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/4,500,000/)).not.toBeInTheDocument();
+    });
   });
 
   describe('1. Stock Table & Permission Gating', () => {
