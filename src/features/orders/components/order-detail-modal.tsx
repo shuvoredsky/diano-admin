@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   X,
   Package,
@@ -18,13 +19,21 @@ import { DateText } from '@/components/shared/date-text';
 import { Timeline, type TimelineEvent } from '@/components/shared/timeline';
 import { TableSkeleton } from '@/components/feedback/skeletons';
 import { ErrorState } from '@/components/feedback/error-state';
-import { useAdminOrderByIdQuery } from '../hooks/use-orders-queries';
+import { ConfirmDialog } from '@/components/feedback/confirm-dialog';
+import { PermissionGate } from '@/components/shared/permission-gate';
+import {
+  useAdminOrderByIdQuery,
+  useUpdateOrderStatusMutation,
+} from '../hooks/use-orders-queries';
 import {
   ORDER_STATUS_LABELS,
   ORDER_STATUS_VARIANTS,
   PAYMENT_STATUS_VARIANTS,
   SHIPMENT_STATUS_VARIANTS,
+  ORDER_TRANSITION_TABLE,
+  getRequiredPermissionForTransition,
 } from '../constants/orders.constants';
+import type { OrderStatus } from '../types/orders.types';
 
 export interface OrderDetailModalProps {
   orderId: string | null;
@@ -33,6 +42,11 @@ export interface OrderDetailModalProps {
 }
 
 export function OrderDetailModal({ orderId, isOpen, onClose }: OrderDetailModalProps) {
+  const [pendingTransition, setPendingTransition] = useState<OrderStatus | null>(null);
+  const [statusNote, setStatusNote] = useState('');
+  const [transitionError, setTransitionError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+
   const {
     data: order,
     isLoading,
@@ -40,7 +54,41 @@ export function OrderDetailModal({ orderId, isOpen, onClose }: OrderDetailModalP
     refetch,
   } = useAdminOrderByIdQuery(orderId || undefined);
 
+  const updateStatusMutation = useUpdateOrderStatusMutation();
+
   if (!isOpen || !orderId) return null;
+
+  const handleInitiateTransition = (targetStatus: OrderStatus) => {
+    setTransitionError(null);
+    setFormError(null);
+    setStatusNote('');
+    setPendingTransition(targetStatus);
+  };
+
+  const handleConfirmTransition = async () => {
+    if (!order || !pendingTransition) return;
+    if (pendingTransition === 'CANCELLED' && !statusNote.trim()) {
+      setFormError('A cancellation reason is required.');
+      return;
+    }
+    setFormError(null);
+    try {
+      await updateStatusMutation.mutateAsync({
+        id: order.id,
+        input: {
+          status: pendingTransition,
+          note: statusNote.trim() || undefined,
+        },
+      });
+      setPendingTransition(null);
+      setStatusNote('');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update order status';
+      setTransitionError(msg);
+    }
+  };
+
+  const nextTransitions = order ? ORDER_TRANSITION_TABLE[order.status] || [] : [];
 
   // Build timeline events from statusHistory
   const timelineEvents: TimelineEvent[] = (order?.statusHistory || []).map((hist, idx) => ({
@@ -123,6 +171,23 @@ export function OrderDetailModal({ orderId, isOpen, onClose }: OrderDetailModalP
 
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {transitionError && (
+            <div className="flex items-center justify-between rounded-xl bg-destructive/10 border border-destructive/20 p-3.5 text-xs text-destructive">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span className="font-medium">{transitionError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTransitionError(null)}
+                className="p-1 hover:bg-destructive/10 rounded transition-colors"
+                aria-label="Dismiss error"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
           {isLoading ? (
             <TableSkeleton rows={8} columns={4} />
           ) : error ? (
@@ -369,12 +434,116 @@ export function OrderDetailModal({ orderId, isOpen, onClose }: OrderDetailModalP
         </div>
 
         {/* Modal Footer */}
-        <div className="flex items-center justify-between border-t border-border bg-muted/20 px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/20 px-6 py-4">
           <Button variant="outline" size="sm" onClick={onClose}>
             Close
           </Button>
+
+          {order && (
+            <div className="flex flex-wrap items-center gap-2">
+              {nextTransitions.map((targetStatus) => {
+                const isCancel = targetStatus === 'CANCELLED';
+                const isSecondary = targetStatus === 'RETURNED' || targetStatus === 'REFUNDED';
+                const btnVariant = isCancel ? 'destructive' : isSecondary ? 'outline' : 'default';
+                const requiredPermission = getRequiredPermissionForTransition(targetStatus);
+
+                return (
+                  <PermissionGate
+                    key={targetStatus}
+                    permissions={[requiredPermission, 'order:manage']}
+                  >
+                    <Button
+                      type="button"
+                      variant={btnVariant}
+                      size="sm"
+                      disabled={updateStatusMutation.isPending}
+                      onClick={() => handleInitiateTransition(targetStatus)}
+                    >
+                      {targetStatus === 'CONFIRMED'
+                        ? 'Confirm Order'
+                        : targetStatus === 'PROCESSING'
+                        ? 'Process Order'
+                        : targetStatus === 'PACKED'
+                        ? 'Mark Packed'
+                        : targetStatus === 'SHIPPED'
+                        ? 'Dispatch / Ship'
+                        : targetStatus === 'DELIVERED'
+                        ? 'Mark Delivered'
+                        : targetStatus === 'CANCELLED'
+                        ? 'Cancel Order'
+                        : targetStatus === 'RETURNED'
+                        ? 'Mark Returned'
+                        : targetStatus === 'REFUNDED'
+                        ? 'Mark Refunded'
+                        : `Mark ${ORDER_STATUS_LABELS[targetStatus] || targetStatus}`}
+                    </Button>
+                  </PermissionGate>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* State Transition Confirmation Dialog */}
+      <ConfirmDialog
+        open={Boolean(pendingTransition)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingTransition(null);
+            setStatusNote('');
+            setFormError(null);
+          }
+        }}
+        title={`Transition Order #${order?.orderNumber || ''} to ${
+          pendingTransition ? ORDER_STATUS_LABELS[pendingTransition] : ''
+        }`}
+        description={
+          <div className="space-y-3 pt-2">
+            <p className="text-xs text-muted-foreground">
+              {pendingTransition === 'CANCELLED'
+                ? 'Are you sure you want to cancel this order? This will release reserved inventory back to warehouse stock and notify the customer. This action cannot be undone.'
+                : pendingTransition === 'SHIPPED'
+                ? 'Are you sure you want to dispatch this order? This will commit reserved inventory balances and notify customer with tracking.'
+                : `Transition order status from ${order ? ORDER_STATUS_LABELS[order.status] : ''} to ${
+                    pendingTransition ? ORDER_STATUS_LABELS[pendingTransition] : ''
+                  }.`}
+            </p>
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-foreground">
+                {pendingTransition === 'CANCELLED'
+                  ? 'Cancellation Reason (Required)'
+                  : 'Administrative Note (Optional)'}
+              </label>
+              <textarea
+                value={statusNote}
+                onChange={(e) => {
+                  setStatusNote(e.target.value);
+                  if (formError) setFormError(null);
+                }}
+                placeholder={
+                  pendingTransition === 'CANCELLED'
+                    ? 'Enter reason for cancellation...'
+                    : 'Add note for order audit history...'
+                }
+                className="w-full rounded-lg border border-border bg-background p-2 text-xs focus:outline-hidden focus:ring-1 focus:ring-primary"
+                rows={3}
+              />
+              {formError && (
+                <p className="text-[11px] text-destructive font-medium">{formError}</p>
+              )}
+            </div>
+          </div>
+        }
+        variant={pendingTransition === 'CANCELLED' ? 'destructive' : 'primary'}
+        confirmLabel={
+          pendingTransition === 'CANCELLED'
+            ? 'Confirm Cancellation'
+            : `Mark as ${pendingTransition ? ORDER_STATUS_LABELS[pendingTransition] : ''}`
+        }
+        isLoading={updateStatusMutation.isPending}
+        onConfirm={handleConfirmTransition}
+      />
     </div>
   );
 }
