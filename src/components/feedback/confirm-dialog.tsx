@@ -53,8 +53,8 @@ export function ConfirmDialog({
               <Dialog.Title className="text-base font-bold text-foreground tracking-tight">
                 {title}
               </Dialog.Title>
-              <Dialog.Description className="text-sm text-muted-foreground">
-                {description}
+              <Dialog.Description asChild className="text-sm text-muted-foreground">
+                <div>{description}</div>
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
@@ -80,8 +80,12 @@ export function ConfirmDialog({
               size="sm"
               disabled={isLoading}
               onClick={async () => {
-                await onConfirm();
-                onOpenChange(false);
+                try {
+                  await onConfirm();
+                  onOpenChange(false);
+                } catch {
+                  // Keep dialog open if onConfirm throws validation/network error
+                }
               }}
               className="rounded-lg"
             >

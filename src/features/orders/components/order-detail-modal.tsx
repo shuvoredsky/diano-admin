@@ -79,7 +79,7 @@ export function OrderDetailModal({ orderId, isOpen, onClose }: OrderDetailModalP
     if (!order || !pendingTransition) return;
     if (pendingTransition === 'CANCELLED' && !statusNote.trim()) {
       setFormError('A cancellation reason is required.');
-      return;
+      throw new Error('A cancellation reason is required.');
     }
     setFormError(null);
     try {
