@@ -1,7 +1,7 @@
 # DIANO Admin Dashboard — Project Progress (`PROJECT_PROGRESS.md`)
 
-**Last Updated:** 2026-11-13
-**Current Phase:** Phase 6B Complete (Abandoned Checkouts List & Recovery Outreach, Customers Directory & Lifecycle Management, Shared Fixes & Verification)
+**Last Updated:** 2026-11-14
+**Current Phase:** Phase 7A Complete (Payments Reconciliation & Cash on Delivery Settlement, Fraud Detection Rules & Review Queue)
 
 ---
 
@@ -17,11 +17,8 @@
 | **Phase 5B** | **INVENTORY:** Inventory overview/movements/receive/adjust/damage/transfer, Suppliers, Purchase Orders, Stock Audits | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (22 files / 113 passed), `build` (35/35 pages + Proxy) |
 | **Phase 6A** | **ORDERS:** Orders list (search, filters, pagination, URL sync), Order detail modal (customer details, delivery destination, line items, API totals), State machine transitions (`PENDING` -> `CONFIRMED` -> `PROCESSING` -> `PACKED` -> `SHIPPED` -> `DELIVERED` -> `RETURNED` + `CANCELLED`), `ConfirmDialog` guards, authenticated binary PDF invoice blob download, admin/customer notes, lifecycle history timeline | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (24 files / 154 passed), `build` (35/35 pages + Proxy) |
 | **Phase 6B** | **ABANDONED CHECKOUTS & CUSTOMERS:** Abandoned checkouts list/stats/recovery with consent & PII rules, Customers list/detail/notes/timeline/status | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (25 files / 165 passed), `build` (35/35 pages + Proxy) |
-| **Phase 7** | **PAYMENTS, FRAUD, SHIPPING, RETURNS/REFUNDS:** Payments list/detail/refund/COD mark-collected (bKash/Nagad "Coming soon"), Fraud rules/review queue/approve/reject/OTP, Shipping zones/methods/shipments, Returns & Refunds | PENDING | — |
-| **Phase 8** | **MARKETING, REVIEWS, REPORTS:** Coupons CRUD, Flash Sales, Reviews (`BACKEND_GAPS.md` honest state), Reports (`orders`, `sales`, `inventory`, `customers`, `financial` CSV/XLSX/PDF blob downloads + 413 handling), Expenses CRUD | PENDING | — |
-| **Phase 9** | **MANAGEMENT:** Notifications inbox + DEAD queue retry, CMS (settings groups, logo/favicon, banners, pages block editor, revisions/restore), Staff + Roles + Permissions, Audit Logs (`BACKEND_GAPS.md` honest state), Settings (read-only env status) | PENDING | — |
-| **Phase 10** | **HARDENING:** Responsive pass (360–1920px), a11y audit (`axe`), Playwright E2E suite, bundle & token consistency check, final production build | PENDING | — |
-| **Phase 7** | **PAYMENTS, FRAUD, SHIPPING, RETURNS/REFUNDS:** Payments list/detail/refund/COD mark-collected (bKash/Nagad "Coming soon"), Fraud rules/review queue/approve/reject/OTP, Shipping zones/methods/shipments, Returns & Refunds | PENDING | — |
+| **Phase 7A** | **PAYMENTS & FRAUD DETECTION:** Payments list/detail, masked transaction IDs, COD settlement mark-collected (`DELIVERED` order requirement), gateway event audit timeline, fraud stats, risk scoring review queue (LOW/MEDIUM/HIGH), approve/reject with required reason, customer OTP verification, fraud rules configuration/toggle with weight validation | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (27 files / 181 passed), `build` (35/35 pages + Proxy) |
+| **Phase 7B** | **SHIPPING, RETURNS, REFUNDS:** Shipping zones/methods, shipments tracking, return requests workflow, gateway refunds execution | PENDING | — |
 | **Phase 8** | **MARKETING, REVIEWS, REPORTS:** Coupons CRUD, Flash Sales, Reviews (`BACKEND_GAPS.md` honest state), Reports (`orders`, `sales`, `inventory`, `customers`, `financial` CSV/XLSX/PDF blob downloads + 413 handling), Expenses CRUD | PENDING | — |
 | **Phase 9** | **MANAGEMENT:** Notifications inbox + DEAD queue retry, CMS (settings groups, logo/favicon, banners, pages block editor, revisions/restore), Staff + Roles + Permissions, Audit Logs (`BACKEND_GAPS.md` honest state), Settings (read-only env status) | PENDING | — |
 | **Phase 10** | **HARDENING:** Responsive pass (360–1920px), a11y audit (`axe`), Playwright E2E suite, bundle & token consistency check, final production build | PENDING | — |
@@ -213,6 +210,33 @@
   - `tests/unit/orders/orders.test.tsx`: 25 tests covering FSM transitions (RETURNED terminal), 403 fraud review hold error handling, confidential `order:view_cost` masking, and JSON error extraction from invoice blobs.
   - Full test suite: 25 test files, 165 unit tests passing (0 failed, 0 skipped).
   - Full production build: 35/35 routes prerendered with Turbopack exit code 0.
+
+---
+
+## Phase 7A Delivery Summary (Completed 2026-11-14)
+- **Payments Management (`/admin/payments`)**:
+  - Modular structure (`types`, `constants`, `api`, `hooks`, `components`): all files under ~200 lines.
+  - Paginated `DataTable` with order links, provider badge (`SSLCOMMERZ` vs `Cash on Delivery`), BDT `MoneyText` formatting, `StatusBadge`, and securely masked transaction IDs (`maskTransactionId`).
+  - `PaymentsFilterBar` synchronized with URL query params (`orderId`, `provider`, `status`).
+  - `PaymentDetailModal` composed of 3 focused sections: `PaymentSummarySection`, `PaymentEventsSection` (with signature validation and redacted payload inspector), and `PaymentActionsSection`.
+  - Cash on Delivery (COD) settlement: "Mark COD Collected" action guarded by `payment:manage` and requiring `order.status === 'DELIVERED'` per backend contract, with `ConfirmDialog` and optional courier settlement notes.
+  - Documented missing admin manual gateway re-verification endpoint as BG-25 in `docs/BACKEND_GAPS.md`.
+- **Fraud Detection & Review Queue (`/admin/fraud-detection`)**:
+  - Real-time `FraudStatsCards` displaying high-risk flagged counts, pending review counts, medium-risk counts, and model false positive rates.
+  - Tabbed workflow switching between "Review Queue" and "Detection Rules".
+  - Review queue `DataTable` displaying risk tier badges (strictly `LOW`, `MEDIUM`, `HIGH`), numeric scores (0-100), review status badges, and triggered risk signal tags.
+  - `FraudReviewDetailModal`: inspects customer context, order facts, engine explanation, triggered risk signals breakdown with points, and immutable decision audit trail.
+  - Staff review actions guarded by `fraud:review` / `fraud:manage`:
+    - "Approve Order (Clear Hold)": resolves hold and includes optional "Mark as False Positive" model calibration flag.
+    - "Reject & Cancel Order": requires a detailed rejection reason (minimum 3 characters) and transitions order to CANCELLED.
+    - Customer OTP dispatch & verification for suspicious orders.
+  - `FraudRulesTable`: lists registered rules, active toggle switches calling atomic enable/disable mutations, and rule edit dialog with weight validation (0-100 points).
+- **Verification & Tests**:
+  - `tests/unit/payments/payments.test.tsx`: 8 tests covering masked transaction IDs, table rendering, detail modal, COD collection guards (`DELIVERED` status requirement), and `payment:manage` permission gating.
+  - `tests/unit/fraud/fraud.test.tsx`: 8 tests covering stats cards, review queue table, review approval with false positive flag, rejection reason validation, and rule weight calibration.
+  - Full test suite: 27 test files, 181 unit tests passing (0 failed, 0 skipped).
+  - TypeScript: 0 errors; ESLint: 0 warnings, 0 errors; zero `as any` / `@ts-ignore` / `eslint-disable` in `src`.
+
 
 
 
