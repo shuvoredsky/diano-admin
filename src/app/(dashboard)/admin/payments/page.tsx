@@ -1,17 +1,11 @@
 import type { Metadata } from 'next';
-
-import { RoutePlaceholder } from '@/components/shared/route-placeholder';
+import { PaymentsManager } from '@/features/payments';
 
 export const metadata: Metadata = {
   title: 'Payments',
+  description: 'SSLCOMMERZ and COD payment transactions reconciliation and settlement.',
 };
 
-export default function AdminRoutePage() {
-  return (
-    <RoutePlaceholder
-      title="Payments"
-      route="/admin/payments"
-      description="SSLCOMMERZ and COD payment transaction reconciliation foundation."
-    />
-  );
+export default function AdminPaymentsPage() {
+  return <PaymentsManager />;
 }
