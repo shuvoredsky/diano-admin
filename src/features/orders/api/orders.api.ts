@@ -68,22 +68,73 @@ export async function downloadAdminOrderInvoiceBlob(
   orderNumber?: string,
   signal?: AbortSignal
 ): Promise<{ blob: Blob; filename: string }> {
-  const res = await browserApiClient.get<Blob>(`/admin/orders/${encodeURIComponent(id)}/invoice`, {
-    responseType: 'blob',
-    signal,
-  });
+  try {
+    const res = await browserApiClient.get<Blob>(`/admin/orders/${encodeURIComponent(id)}/invoice`, {
+      responseType: 'blob',
+      signal,
+    });
 
-  // Extract filename from Content-Disposition if present
-  let filename = `Invoice-${orderNumber || id}.pdf`;
-  const disposition = res.headers?.['content-disposition'] as string | undefined;
-  if (disposition) {
-    const filenameMatch = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-    if (filenameMatch?.[1]) {
-      filename = filenameMatch[1].replace(/['"]/g, '').trim();
+    if (res.data.type === 'application/json') {
+      const text = await res.data.text();
+      let errorMsg = 'Failed to download invoice';
+      try {
+        const parsed = JSON.parse(text) as { message?: string; error?: string };
+        if (parsed?.message) errorMsg = parsed.message;
+        else if (parsed?.error) errorMsg = parsed.error;
+      } catch {
+        // Fall back to default errorMsg
+      }
+      throw new Error(errorMsg);
     }
-  }
 
-  return { blob: res.data, filename };
+    // Extract filename from Content-Disposition if present
+    let filename = `Invoice-${orderNumber || id}.pdf`;
+    const disposition = res.headers?.['content-disposition'] as string | undefined;
+    if (disposition) {
+      const filenameMatch = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      if (filenameMatch?.[1]) {
+        filename = filenameMatch[1].replace(/['"]/g, '').trim();
+      }
+    }
+
+    return { blob: res.data, filename };
+  } catch (err: unknown) {
+    if (
+      err &&
+      typeof err === 'object' &&
+      'response' in err &&
+      err.response &&
+      typeof err.response === 'object' &&
+      'data' in err.response &&
+      err.response.data instanceof Blob
+    ) {
+      const blob = err.response.data as Blob;
+      if (blob.type === 'application/json') {
+        const text = await blob.text();
+        let message = 'Invoice not available or failed to generate';
+        try {
+          const parsed = JSON.parse(text) as { message?: string; error?: string };
+          if (parsed?.message) message = parsed.message;
+          else if (parsed?.error) message = parsed.error;
+        } catch {
+          // Fall back to default message
+        }
+        throw new Error(message, { cause: err });
+      }
+    }
+    throw err;
+  }
+}
+
+export function saveBlobAsFile(blob: Blob, filename: string): void {
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(url);
 }
 
 export async function fetchOrderShipment(

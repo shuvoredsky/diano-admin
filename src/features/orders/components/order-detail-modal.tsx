@@ -11,6 +11,9 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
+  FileDown,
+  MessageSquare,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/shared/status-badge';
@@ -24,7 +27,9 @@ import { PermissionGate } from '@/components/shared/permission-gate';
 import {
   useAdminOrderByIdQuery,
   useUpdateOrderStatusMutation,
+  useAddOrderNoteMutation,
 } from '../hooks/use-orders-queries';
+import { downloadAdminOrderInvoiceBlob, saveBlobAsFile } from '../api/orders.api';
 import {
   ORDER_STATUS_LABELS,
   ORDER_STATUS_VARIANTS,
@@ -46,6 +51,10 @@ export function OrderDetailModal({ orderId, isOpen, onClose }: OrderDetailModalP
   const [statusNote, setStatusNote] = useState('');
   const [transitionError, setTransitionError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+  const [newNote, setNewNote] = useState('');
+  const [isCustomerVisible, setIsCustomerVisible] = useState(false);
+  const [noteError, setNoteError] = useState<string | null>(null);
 
   const {
     data: order,
@@ -55,6 +64,7 @@ export function OrderDetailModal({ orderId, isOpen, onClose }: OrderDetailModalP
   } = useAdminOrderByIdQuery(orderId || undefined);
 
   const updateStatusMutation = useUpdateOrderStatusMutation();
+  const addNoteMutation = useAddOrderNoteMutation();
 
   if (!isOpen || !orderId) return null;
 
@@ -82,9 +92,44 @@ export function OrderDetailModal({ orderId, isOpen, onClose }: OrderDetailModalP
       });
       setPendingTransition(null);
       setStatusNote('');
+      refetch();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to update order status';
       setTransitionError(msg);
+    }
+  };
+
+  const handleDownloadInvoice = async () => {
+    if (!order) return;
+    setIsDownloadingInvoice(true);
+    setTransitionError(null);
+    try {
+      const { blob, filename } = await downloadAdminOrderInvoiceBlob(order.id, order.orderNumber);
+      saveBlobAsFile(blob, filename);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to download invoice PDF';
+      setTransitionError(msg);
+    } finally {
+      setIsDownloadingInvoice(false);
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!order || !newNote.trim()) return;
+    setNoteError(null);
+    try {
+      await addNoteMutation.mutateAsync({
+        id: order.id,
+        input: {
+          note: newNote.trim(),
+          isCustomerVisible,
+        },
+      });
+      setNewNote('');
+      setIsCustomerVisible(false);
+      refetch();
+    } catch (err: unknown) {
+      setNoteError(err instanceof Error ? err.message : 'Failed to add order note');
     }
   };
 
@@ -147,16 +192,36 @@ export function OrderDetailModal({ orderId, isOpen, onClose }: OrderDetailModalP
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {order && (
-              <div className="text-right">
-                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                  Grand Total
-                </span>
-                <div className="text-base font-black text-primary-deep dark:text-primary">
-                  <MoneyText amount={order.grandTotal} />
+              <>
+                <PermissionGate permissions={['order:read']}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isDownloadingInvoice}
+                    onClick={handleDownloadInvoice}
+                    className="gap-1.5"
+                  >
+                    {isDownloadingInvoice ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    ) : (
+                      <FileDown className="h-4 w-4 text-primary" />
+                    )}
+                    <span>{isDownloadingInvoice ? 'Downloading...' : 'Invoice PDF'}</span>
+                  </Button>
+                </PermissionGate>
+
+                <div className="text-right pl-2 border-l border-border">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                    Grand Total
+                  </span>
+                  <div className="text-base font-black text-primary-deep dark:text-primary">
+                    <MoneyText amount={order.grandTotal} />
+                  </div>
                 </div>
-              </div>
+              </>
             )}
             <button
               type="button"
@@ -420,6 +485,90 @@ export function OrderDetailModal({ orderId, isOpen, onClose }: OrderDetailModalP
                   </div>
                 </div>
               )}
+
+              {/* Admin & Customer Notes Section */}
+              <div className="space-y-3 pt-2 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-foreground">
+                    <MessageSquare className="h-4 w-4 text-primary" />
+                    Order Notes ({order.orderNotes?.length || 0})
+                  </div>
+                </div>
+
+                {order.orderNotes && order.orderNotes.length > 0 ? (
+                  <div className="space-y-2">
+                    {order.orderNotes.map((note) => (
+                      <div
+                        key={note.id}
+                        className="rounded-xl border border-border bg-muted/15 p-3 space-y-1 text-xs"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-foreground">
+                              {note.authorId ? `Staff (${note.authorId.slice(0, 8)})` : 'Staff'}
+                            </span>
+                            <span
+                              className={`inline-block rounded-md px-1.5 py-0.5 text-[10px] font-medium ${
+                                note.isCustomerVisible
+                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
+                                  : 'bg-muted text-muted-foreground'
+                              }`}
+                            >
+                              {note.isCustomerVisible ? 'Customer Visible' : 'Internal Note'}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            <DateText date={note.createdAt} />
+                          </span>
+                        </div>
+                        <p className="text-foreground whitespace-pre-wrap">{note.note}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-border p-3 text-center text-xs text-muted-foreground">
+                    No notes recorded for this order yet.
+                  </div>
+                )}
+
+                <PermissionGate permissions={['order:update_status', 'order:manage']}>
+                  <div className="rounded-xl border border-border bg-card p-3 space-y-2.5">
+                    <h4 className="text-xs font-semibold text-foreground">Add Order Note</h4>
+                    <textarea
+                      value={newNote}
+                      onChange={(e) => {
+                        setNewNote(e.target.value);
+                        if (noteError) setNoteError(null);
+                      }}
+                      placeholder="Type order progress update, audit detail, or customer instruction..."
+                      className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-hidden focus:ring-1 focus:ring-primary"
+                      rows={2}
+                    />
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={isCustomerVisible}
+                          onChange={(e) => setIsCustomerVisible(e.target.checked)}
+                          className="rounded border-border text-primary focus:ring-primary"
+                        />
+                        <span>Visible to customer</span>
+                      </label>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={addNoteMutation.isPending || !newNote.trim()}
+                        onClick={handleAddNote}
+                      >
+                        {addNoteMutation.isPending ? 'Adding Note...' : 'Add Note'}
+                      </Button>
+                    </div>
+                    {noteError && (
+                      <p className="text-[11px] text-destructive font-medium">{noteError}</p>
+                    )}
+                  </div>
+                </PermissionGate>
+              </div>
 
               {/* Order Lifecycle Timeline */}
               <div className="space-y-3 pt-2 border-t border-border">
