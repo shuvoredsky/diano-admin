@@ -208,10 +208,11 @@ export function FraudRulesTable() {
 
             <form onSubmit={handleSaveRule} className="space-y-3.5 text-xs">
               <div>
-                <label className="block font-semibold text-foreground mb-1">
+                <label htmlFor="rule-name" className="block font-semibold text-foreground mb-1">
                   Rule Name:
                 </label>
                 <input
+                  id="rule-name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -221,10 +222,11 @@ export function FraudRulesTable() {
               </div>
 
               <div>
-                <label className="block font-semibold text-foreground mb-1">
+                <label htmlFor="rule-desc" className="block font-semibold text-foreground mb-1">
                   Description:
                 </label>
                 <textarea
+                  id="rule-desc"
                   rows={2}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -233,10 +235,11 @@ export function FraudRulesTable() {
               </div>
 
               <div>
-                <label className="block font-semibold text-foreground mb-1">
+                <label htmlFor="rule-weight" className="block font-semibold text-foreground mb-1">
                   Risk Weight Points (0 to 100):
                 </label>
                 <input
+                  id="rule-weight"
                   type="number"
                   min={0}
                   max={100}
