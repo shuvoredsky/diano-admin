@@ -1,17 +1,11 @@
 import type { Metadata } from 'next';
-
-import { RoutePlaceholder } from '@/components/shared/route-placeholder';
+import { ReturnsManager } from '@/features/returns';
 
 export const metadata: Metadata = {
-  title: 'Returns',
+  title: 'Returns & RMA',
+  description: 'Manage return requests, warehouse inspections, and customer resolutions.',
 };
 
-export default function AdminRoutePage() {
-  return (
-    <RoutePlaceholder
-      title="Returns"
-      route="/admin/returns"
-      description="Return merchandise authorization (RMA) and inspection workflow foundation."
-    />
-  );
+export default function ReturnsPage() {
+  return <ReturnsManager />;
 }
