@@ -4,6 +4,44 @@ import { Activity, ShieldCheck, Clock } from 'lucide-react';
 import { DateText } from '@/components/shared/date-text';
 import type { PaymentEventItem } from '../types/payments.types';
 
+export const ALLOWED_PAYLOAD_KEYS = new Set([
+  'status',
+  'tran_id',
+  'val_id',
+  'amount',
+  'store_amount',
+  'currency',
+  'bank_tran_id',
+  'card_type',
+  'card_no',
+  'card_issuer',
+  'card_brand',
+  'card_sub_brand',
+  'card_issuer_country',
+  'currency_type',
+  'currency_amount',
+  'tran_date',
+  'error',
+  'failedreason',
+  'risk_level',
+  'risk_title',
+  'validated_on',
+  'store_id',
+]);
+
+export function filterPayloadAllowlist(
+  payload: Record<string, unknown> | null | undefined
+): Record<string, unknown> {
+  if (!payload || typeof payload !== 'object') return {};
+  const safe: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(payload)) {
+    if (ALLOWED_PAYLOAD_KEYS.has(key)) {
+      safe[key] = val;
+    }
+  }
+  return safe;
+}
+
 export interface PaymentEventsSectionProps {
   events?: PaymentEventItem[];
 }
@@ -52,16 +90,20 @@ export function PaymentEventsSection({ events = [] }: PaymentEventsSectionProps)
               )}
             </div>
 
-            {evt.rawPayloadRedacted && Object.keys(evt.rawPayloadRedacted).length > 0 && (
-              <details className="mt-1">
-                <summary className="text-[10px] text-primary cursor-pointer hover:underline">
-                  View Redacted Gateway Payload
-                </summary>
-                <pre className="mt-1 rounded-md bg-muted/60 p-2 text-[10px] font-mono text-muted-foreground overflow-x-auto max-h-32">
-                  {JSON.stringify(evt.rawPayloadRedacted, null, 2)}
-                </pre>
-              </details>
-            )}
+            {(() => {
+              const safePayload = filterPayloadAllowlist(evt.rawPayloadRedacted);
+              if (Object.keys(safePayload).length === 0) return null;
+              return (
+                <details className="mt-1">
+                  <summary className="text-[10px] text-primary cursor-pointer hover:underline">
+                    View Redacted Gateway Payload
+                  </summary>
+                  <pre className="mt-1 rounded-md bg-muted/60 p-2 text-[10px] font-mono text-muted-foreground overflow-x-auto max-h-32">
+                    {JSON.stringify(safePayload, null, 2)}
+                  </pre>
+                </details>
+              );
+            })()}
           </div>
         ))}
       </div>

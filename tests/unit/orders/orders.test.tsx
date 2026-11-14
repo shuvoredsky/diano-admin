@@ -372,6 +372,32 @@ describe('Phase 6A: Orders Management & State Machine', () => {
         });
       });
     });
+
+    it('displays shipment warning notice when dispatching order without shipment tracking', async () => {
+      currentMockOrder = {
+        ...mockOrderPending,
+        id: 'ord-packed-01',
+        status: 'PACKED',
+        shipments: [],
+      };
+      setupPermissions(['order:read', 'order:update_status'], true);
+
+      render(
+        <AppProviders>
+          <OrderDetailModal orderId="ord-packed-01" isOpen={true} onClose={vi.fn()} />
+        </AppProviders>
+      );
+
+      const dispatchBtn = screen.getByRole('button', { name: /dispatch \/ ship/i });
+      fireEvent.click(dispatchBtn);
+
+      expect(
+        screen.getByText(/notice: no shipment tracking created/i)
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/no shipment or tracking number has been recorded for this order yet/i)
+      ).toBeInTheDocument();
+    });
   });
 
   describe('5. Invoice PDF Download & Staff Notes', () => {

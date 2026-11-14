@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import type { OrderDetailEntity, OrderStatus } from '../types/orders.types';
 import {
   ORDER_TRANSITION_TABLE,
@@ -127,6 +128,20 @@ export function OrderStatusActions({ order, onStatusUpdated, onError }: OrderSta
                     pendingTransition ? ORDER_STATUS_LABELS[pendingTransition] : ''
                   }.`}
             </p>
+            {pendingTransition === 'SHIPPED' && (!order.shipments || order.shipments.length === 0) && (
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-800 dark:text-amber-300"
+              >
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <p className="font-semibold">Notice: No shipment tracking created</p>
+                  <p className="text-[11px] opacity-90">
+                    No shipment or tracking number has been recorded for this order yet. You may still proceed with marking it as shipped, but creating a shipment first is recommended.
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="space-y-1">
               <label className="text-[11px] font-semibold text-foreground">
                 {pendingTransition === 'CANCELLED'

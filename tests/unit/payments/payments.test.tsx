@@ -5,6 +5,7 @@ import {
   PaymentsTable,
   PaymentDetailModal,
   maskTransactionId,
+  filterPayloadAllowlist,
   type PaymentListItem,
   type PaymentDetailEntity,
 } from '@/features/payments';
@@ -302,6 +303,31 @@ describe('Phase 7A: Payments Management', () => {
 
       expect(screen.queryByRole('button', { name: /mark cod collected/i })).not.toBeInTheDocument();
       expect(screen.getByText(/you do not have permission to mark cod payments collected/i)).toBeInTheDocument();
+    });
+
+    it('enforces strict allowlist on raw gateway payload, filtering secret keys', () => {
+      const untrustedPayload = {
+        tran_id: 'TRAN-999',
+        val_id: 'VAL-12345',
+        amount: '1500.00',
+        status: 'VALID',
+        store_passwd: 'super_secret_password',
+        sessionkey: 'secret-session-token-xyz',
+        jwt_token: 'bearer.token.payload',
+        card_type: 'VISA',
+      };
+
+      const safe = filterPayloadAllowlist(untrustedPayload);
+      expect(safe).toEqual({
+        tran_id: 'TRAN-999',
+        val_id: 'VAL-12345',
+        amount: '1500.00',
+        status: 'VALID',
+        card_type: 'VISA',
+      });
+      expect(safe).not.toHaveProperty('store_passwd');
+      expect(safe).not.toHaveProperty('sessionkey');
+      expect(safe).not.toHaveProperty('jwt_token');
     });
   });
 });

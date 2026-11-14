@@ -5,6 +5,7 @@ import { Search, X, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useTableQueryParams } from '@/lib/crud';
+import { createDhakaDate, formatDhakaDateOnly } from '@/lib/utils/dhaka-period';
 import { ORDER_STATUS_LABELS } from '../constants/orders.constants';
 import type { OrderStatus } from '../types/orders.types';
 
@@ -18,8 +19,10 @@ export function OrdersFilterBar() {
   const search = searchParams.get('search') || '';
   const status = searchParams.get('status') || '';
   const paymentStatus = searchParams.get('paymentStatus') || '';
+  const dateFrom = searchParams.get('dateFrom') || '';
+  const dateTo = searchParams.get('dateTo') || '';
 
-  const hasActiveFilters = Boolean(search || status || paymentStatus);
+  const hasActiveFilters = Boolean(search || status || paymentStatus || dateFrom || dateTo);
 
   const handleSearchChange = (value: string) => {
     startTransition(() => {
@@ -38,6 +41,47 @@ export function OrdersFilterBar() {
       setFilter('paymentStatus', value || null);
     });
   };
+
+  const handleDateFromChange = (dateVal: string) => {
+    startTransition(() => {
+      if (!dateVal) {
+        setFilter('dateFrom', null);
+        return;
+      }
+      const parts = dateVal.split('-').map(Number);
+      const y = parts[0];
+      const m = parts[1];
+      const d = parts[2];
+      if (y === undefined || m === undefined || d === undefined || isNaN(y) || isNaN(m) || isNaN(d)) {
+        setFilter('dateFrom', null);
+        return;
+      }
+      const iso = createDhakaDate(y, m, d, 0, 0, 0, 0).toISOString();
+      setFilter('dateFrom', iso);
+    });
+  };
+
+  const handleDateToChange = (dateVal: string) => {
+    startTransition(() => {
+      if (!dateVal) {
+        setFilter('dateTo', null);
+        return;
+      }
+      const parts = dateVal.split('-').map(Number);
+      const y = parts[0];
+      const m = parts[1];
+      const d = parts[2];
+      if (y === undefined || m === undefined || d === undefined || isNaN(y) || isNaN(m) || isNaN(d)) {
+        setFilter('dateTo', null);
+        return;
+      }
+      const iso = createDhakaDate(y, m, d, 23, 59, 59, 999).toISOString();
+      setFilter('dateTo', iso);
+    });
+  };
+
+  const rawDateFrom = dateFrom ? formatDhakaDateOnly(new Date(dateFrom)) : '';
+  const rawDateTo = dateTo ? formatDhakaDateOnly(new Date(dateTo)) : '';
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
@@ -93,6 +137,33 @@ export function OrdersFilterBar() {
           <option value="REFUNDED">Payment Refunded</option>
           <option value="PARTIALLY_REFUNDED">Partially Refunded</option>
         </select>
+
+        {/* Date Range Inputs (Asia/Dhaka) */}
+        <div className="flex items-center gap-1.5">
+          <div className="relative">
+            <span className="sr-only">Date From</span>
+            <input
+              type="date"
+              aria-label="Date From (Asia/Dhaka)"
+              value={rawDateFrom}
+              onChange={(e) => handleDateFromChange(e.target.value)}
+              className="h-9 rounded-xl border border-input bg-background px-2.5 text-xs text-foreground focus:border-primary focus:outline-hidden"
+              title="Filter from date (Dhaka timezone)"
+            />
+          </div>
+          <span className="text-xs text-muted-foreground">to</span>
+          <div className="relative">
+            <span className="sr-only">Date To</span>
+            <input
+              type="date"
+              aria-label="Date To (Asia/Dhaka)"
+              value={rawDateTo}
+              onChange={(e) => handleDateToChange(e.target.value)}
+              className="h-9 rounded-xl border border-input bg-background px-2.5 text-xs text-foreground focus:border-primary focus:outline-hidden"
+              title="Filter to date (Dhaka timezone)"
+            />
+          </div>
+        </div>
 
         {/* Reset Filters */}
         {hasActiveFilters && (
