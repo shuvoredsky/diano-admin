@@ -1,17 +1,11 @@
 import type { Metadata } from 'next';
-
-import { RoutePlaceholder } from '@/components/shared/route-placeholder';
+import { RefundsManager } from '@/features/refunds';
 
 export const metadata: Metadata = {
-  title: 'Refunds',
+  title: 'Refunds & Settlements',
+  description: 'Manage customer refunds, order cancellations, and gateway disbursements.',
 };
 
-export default function AdminRoutePage() {
-  return (
-    <RoutePlaceholder
-      title="Refunds"
-      route="/admin/refunds"
-      description="Refund processing, ledger adjustments, and settlement tracking foundation."
-    />
-  );
+export default function RefundsPage() {
+  return <RefundsManager />;
 }
