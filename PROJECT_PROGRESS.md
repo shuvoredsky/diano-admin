@@ -1,7 +1,7 @@
 # DIANO Admin Dashboard — Project Progress (`PROJECT_PROGRESS.md`)
 
 **Last Updated:** 2026-11-14
-**Current Phase:** Phase 7A Complete (Payments Reconciliation & Cash on Delivery Settlement, Fraud Detection Rules & Review Queue)
+**Current Phase:** Phase 7B Complete (Shipping Zones & Methods, Courier Tracking & Status Updates, Returns & RMA Inspection Decisions, Refunds & Settlements)
 
 ---
 
@@ -18,7 +18,7 @@
 | **Phase 6A** | **ORDERS:** Orders list (search, filters, pagination, URL sync), Order detail modal (customer details, delivery destination, line items, API totals), State machine transitions (`PENDING` -> `CONFIRMED` -> `PROCESSING` -> `PACKED` -> `SHIPPED` -> `DELIVERED` -> `RETURNED` + `CANCELLED`), `ConfirmDialog` guards, authenticated binary PDF invoice blob download, admin/customer notes, lifecycle history timeline | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (24 files / 154 passed), `build` (35/35 pages + Proxy) |
 | **Phase 6B** | **ABANDONED CHECKOUTS & CUSTOMERS:** Abandoned checkouts list/stats/recovery with consent & PII rules, Customers list/detail/notes/timeline/status | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (25 files / 165 passed), `build` (35/35 pages + Proxy) |
 | **Phase 7A** | **PAYMENTS & FRAUD DETECTION:** Payments list/detail, masked transaction IDs, COD settlement mark-collected (`DELIVERED` order requirement), gateway event audit timeline, fraud stats, risk scoring review queue (LOW/MEDIUM/HIGH), approve/reject with required reason, customer OTP verification, fraud rules configuration/toggle with weight validation | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (27 files / 181 passed), `build` (35/35 pages + Proxy) |
-| **Phase 7B** | **SHIPPING, RETURNS, REFUNDS:** Shipping zones/methods, shipments tracking, return requests workflow, gateway refunds execution | PENDING | — |
+| **Phase 7B** | **SHIPPING, RETURNS, REFUNDS:** Shipping zones/methods, shipments tracking, return requests workflow, gateway refunds execution | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (32 files / 199 passed), `build` (35/35 pages + Proxy) |
 | **Phase 8** | **MARKETING, REVIEWS, REPORTS:** Coupons CRUD, Flash Sales, Reviews (`BACKEND_GAPS.md` honest state), Reports (`orders`, `sales`, `inventory`, `customers`, `financial` CSV/XLSX/PDF blob downloads + 413 handling), Expenses CRUD | PENDING | — |
 | **Phase 9** | **MANAGEMENT:** Notifications inbox + DEAD queue retry, CMS (settings groups, logo/favicon, banners, pages block editor, revisions/restore), Staff + Roles + Permissions, Audit Logs (`BACKEND_GAPS.md` honest state), Settings (read-only env status) | PENDING | — |
 | **Phase 10** | **HARDENING:** Responsive pass (360–1920px), a11y audit (`axe`), Playwright E2E suite, bundle & token consistency check, final production build | PENDING | — |
@@ -236,6 +236,43 @@
   - `tests/unit/fraud/fraud.test.tsx`: 8 tests covering stats cards, review queue table, review approval with false positive flag, rejection reason validation, and rule weight calibration.
   - Full test suite: 27 test files, 181 unit tests passing (0 failed, 0 skipped).
   - TypeScript: 0 errors; ESLint: 0 warnings, 0 errors; zero `as any` / `@ts-ignore` / `eslint-disable` in `src`.
+
+---
+
+## Phase 7B Delivery Summary (Completed 2026-11-14)
+- **Part 0: Phase 7A Verification & Contract Audit**:
+  - Vitest Performance Benchmark: Reported baseline test suite execution time (137s across 29 test files) due to repeated JSDOM context setup. Safely tuned runner settings with pool configuration.
+  - Mark COD Collected: Audited backend enforcement in `payments.service.ts:488-492` which explicitly blocks COD collection unless `order.status === 'DELIVERED'`. Confirmed admin UI matches backend exactly.
+  - Fraud Customer OTP & Order Cancellation: Verified live backend endpoints (`POST /api/v1/admin/fraud/reviews/:id/request-otp` and `verify-otp`) in `fraud.routes.ts` and confirmed review rejection cancels order atomically in `fraud.service.ts:298-308`.
+  - Payment Redacted Payload Allowlist: Replaced direct payload rendering with strict `filterPayloadAllowlist` in `payment-events-section.tsx` preventing credentials, passwords, and sensitive keys from ever displaying.
+  - Order Date Filter Windowing: Confirmed backend `orders.repository.ts:291-294` query logic and updated `orders-filter-bar.tsx` with date inputs producing exact Asia/Dhaka ISO boundaries.
+  - Documented BG-26 in `docs/BACKEND_GAPS.md`: Backend permits order transition to `SHIPPED` without a shipment row; added non-blocking warning alert in `order-status-actions.tsx`.
+- **Shipping Settings & Logistics (`/admin/shipping`)**:
+  - Delivery Zones management (`ZonesList`, `ZoneFormModal`): Full CRUD covering all 64 Bangladesh districts, active status toggles, and deletion guards.
+  - Shipping Methods management (`MethodsTable`, `MethodFormModal`): Base delivery charge, per-kg extra weight rate, free shipping threshold (with zero-float Decimal string validations), estimated delivery days, and sort orders.
+  - Top manager (`ShippingManager`) with clean tab switcher between "Delivery Zones" and "Shipping Methods".
+- **Shipment Management & Courier Tracking**:
+  - Integrated `OrderShipmentsSection` directly into order detail modal.
+  - Create Shipment modal (`CreateShipmentModal`): Courier partner selection with Bangladeshi courier presets (Steadfast, Pathao, RedX, Paperfly, Sundarban, eCourier), tracking number, shipping method assignment, label URL, and internal notes.
+  - Update Shipment Status modal (`UpdateShipmentModal`): Allows staff with `order:ship` / `shipping:manage` to advance through all 9 real `ShipmentStatus` enum states (`PENDING`, `PICKED_UP`, `IN_TRANSIT`, `OUT_FOR_DELIVERY`, `DELIVERED`, `FAILED_ATTEMPT`, `RETURNED_TO_ORIGIN`, `RETURNING`, `RETURNED`), recording checkpoint locations and event history.
+- **Returns & RMA (`/admin/returns`)**:
+  - Server-side paginated `ReturnsTable` with live status filter and order/customer search via `useTableQueryParams`.
+  - `ReturnDetailModal` displaying line items, quantities, customer reason, return status, and order details.
+  - Operational decisions (`ReturnActionsSection`):
+    - Approve Return: Advances requested return to approved state awaiting package arrival.
+    - Reject Return: Requires mandatory rejection explanation (minimum 3 characters) before transition.
+  - `ReturnInspectModal`: Detailed package inspection recording physical condition (`GOOD` / `DAMAGED`) and processing action (`REFUND` / `REPLACE` / `REJECT`) per line item, with optional shipping charge refund inclusion.
+- **Refunds & Settlements (`/admin/refunds`)**:
+  - Server-side paginated `RefundsTable` with order number link, customer details, BDT `MoneyText` amounts, reason, and status badge.
+  - `RefundDetailModal`: Shows complete financial breakdown, gateway reference IDs (SSLCOMMERZ refund ID / manual ref), order status, and disbursement timestamp.
+  - `CreateRefundModal`: Authorizes order refunds with positive decimal string validation and mandatory reason requirement.
+- **Verification & Tests**:
+  - `tests/unit/shipping/shipping.test.tsx`: 6 tests covering delivery zones list, district selection, methods table, method form validation, shipment tracking display, and courier status update.
+  - `tests/unit/returns/returns.test.tsx`: 5 tests covering return requests list, detail modal, approval action, mandatory rejection reason, and item-by-item condition inspection.
+  - `tests/unit/refunds/refunds.test.tsx`: 3 tests covering refunds table, detail modal with gateway references, and order refund execution modal.
+  - Full test suite: 32 test files, 199 unit tests passing (0 failed, 0 skipped).
+  - TypeScript: 0 errors; ESLint: 0 warnings, 0 errors; clean production build.
+
 
 
 
