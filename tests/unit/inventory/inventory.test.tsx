@@ -14,6 +14,7 @@ import { AuditDetailModal } from '@/features/inventory/components/audit-detail-m
 import type { InventoryEntity, StockMovementEntity } from '@/features/inventory/types/inventory.types';
 import type { PurchaseOrderEntity } from '@/features/purchases/types/purchases.types';
 import * as inventoryApi from '@/features/inventory/api/inventory.api';
+import * as purchasesApi from '@/features/purchases/api/purchases.api';
 import type * as InventoryQueriesModule from '@/features/inventory/hooks/use-inventory-queries';
 
 // Mock Next.js navigation
@@ -556,6 +557,31 @@ describe('Phase 5B: Inventory, Suppliers, PO & Audits', () => {
       expect(submitBtn).toBeInTheDocument();
       expect(submitBtn).not.toBeDisabled();
     });
+
+    it('displays exact backend 400 error message as-is when over-receiving or invalid receive occurs', async () => {
+      const backendErrorMsg =
+        "Cannot receive 15 units for variant 'SLK-PAN-40'. Remaining unreceived quantity is 10. Over-receiving is blocked.";
+      vi.spyOn(purchasesApi, 'receivePurchaseOrderItems').mockRejectedValueOnce(
+        new Error(backendErrorMsg)
+      );
+
+      render(
+        <AppProviders>
+          <PurchaseOrderReceiveModal
+            po={mockPurchaseOrders[1]!}
+            isOpen={true}
+            onClose={vi.fn()}
+          />
+        </AppProviders>
+      );
+
+      const submitBtn = screen.getByRole('button', { name: /confirm receipt & update stock/i });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(screen.getByText(backendErrorMsg)).toBeInTheDocument();
+      });
+    });
   });
 
   describe('6. Physical Stock Audit & Variance Calculation', () => {
@@ -615,6 +641,43 @@ describe('Phase 5B: Inventory, Suppliers, PO & Audits', () => {
 
       expect(screen.queryByRole('button', { name: /approve & reconcile/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /reject audit/i })).not.toBeInTheDocument();
+    });
+
+    it('displays exact backend 400 error message as-is when audit double-approve occurs', async () => {
+      vi.spyOn(usePermissionsHook, 'usePermissions').mockReturnValue({
+        user: undefined,
+        roles: ['SUPER_ADMIN'],
+        isSuperAdmin: true,
+        isLoading: false,
+        isAuthenticated: true,
+        permissions: ['inventory:audit'],
+        hasPermission: () => true,
+        hasAllPermissions: () => true,
+        hasAnyPermission: () => true,
+      });
+
+      const backendErrorMsg = "Cannot approve an audit in status 'APPROVED'";
+      vi.spyOn(inventoryApi, 'approveStockAudit').mockRejectedValueOnce(
+        new Error(backendErrorMsg)
+      );
+
+      render(
+        <AppProviders>
+          <AuditDetailModal auditId="audit-123" isOpen={true} onClose={vi.fn()} />
+        </AppProviders>
+      );
+
+      // Open approve confirm dialog
+      const approveBtn = screen.getByRole('button', { name: /approve & reconcile/i });
+      fireEvent.click(approveBtn);
+
+      // Confirm approval in dialog
+      const confirmBtn = screen.getByRole('button', { name: /approve & apply/i });
+      fireEvent.click(confirmBtn);
+
+      await waitFor(() => {
+        expect(screen.getByText(backendErrorMsg)).toBeInTheDocument();
+      });
     });
   });
 
