@@ -134,7 +134,7 @@ export function OrderDetailModal({ orderId, isOpen, onClose }: OrderDetailModalP
               )}
 
               {/* Customer, Shipping, Payment, Logistics Cards */}
-              <OrderDetailCards order={order} />
+              <OrderDetailCards order={order} onRefetch={() => refetch()} />
 
               {/* Order Items Table & Financial Summary */}
               <OrderItemsTable order={order} />

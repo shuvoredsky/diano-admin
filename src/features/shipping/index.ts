@@ -9,3 +9,6 @@ export * from './components/zone-form-modal';
 export * from './components/methods-table';
 export * from './components/method-form-modal';
 export * from './components/shipping-manager';
+export * from './components/create-shipment-modal';
+export * from './components/update-shipment-modal';
+export * from './components/order-shipments-section';

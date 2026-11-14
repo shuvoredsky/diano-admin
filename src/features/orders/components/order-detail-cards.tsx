@@ -3,14 +3,16 @@
 import type { OrderDetailEntity } from '../types/orders.types';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { DateText } from '@/components/shared/date-text';
-import { MapPin, CreditCard, Truck } from 'lucide-react';
-import { PAYMENT_STATUS_VARIANTS, SHIPMENT_STATUS_VARIANTS } from '../constants/orders.constants';
+import { MapPin, CreditCard } from 'lucide-react';
+import { PAYMENT_STATUS_VARIANTS } from '../constants/orders.constants';
+import { OrderShipmentsSection, type ShipmentEntity } from '@/features/shipping';
 
 export interface OrderDetailCardsProps {
   order: OrderDetailEntity;
+  onRefetch?: () => void;
 }
 
-export function OrderDetailCards({ order }: OrderDetailCardsProps) {
+export function OrderDetailCards({ order, onRefetch }: OrderDetailCardsProps) {
   return (
     <div className="space-y-4">
       {/* 2-Column Info Grid: Customer / Delivery & Payment */}
@@ -90,41 +92,13 @@ export function OrderDetailCards({ order }: OrderDetailCardsProps) {
         </div>
       </div>
 
-      {/* Shipments Section (if available) */}
-      {order.shipments && order.shipments.length > 0 && (
-        <div className="space-y-3 pt-2 border-t border-border">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-foreground">
-            <Truck className="h-4 w-4 text-primary" />
-            Shipment & Logistics
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {order.shipments.map((shipment) => (
-              <div
-                key={shipment.id}
-                className="rounded-xl border border-border bg-muted/10 p-3 space-y-1.5 text-xs"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-foreground">
-                    {shipment.courierName}
-                  </span>
-                  <StatusBadge
-                    status={shipment.status}
-                    variant={SHIPMENT_STATUS_VARIANTS[shipment.status] || 'neutral'}
-                  />
-                </div>
-                {shipment.trackingNumber && (
-                  <div className="text-[11px] text-muted-foreground">
-                    Tracking: <span className="font-mono font-bold text-foreground">{shipment.trackingNumber}</span>
-                  </div>
-                )}
-                <div className="text-[10px] text-muted-foreground">
-                  Updated: <DateText date={shipment.updatedAt} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Shipments Section */}
+      <OrderShipmentsSection
+        orderId={order.id}
+        orderNumber={order.orderNumber}
+        shipments={order.shipments as unknown as ShipmentEntity[]}
+        onRefetch={onRefetch}
+      />
     </div>
   );
 }
