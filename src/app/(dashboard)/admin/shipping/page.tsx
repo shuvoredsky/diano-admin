@@ -1,17 +1,11 @@
 import type { Metadata } from 'next';
-
-import { RoutePlaceholder } from '@/components/shared/route-placeholder';
+import { ShippingManager } from '@/features/shipping';
 
 export const metadata: Metadata = {
-  title: 'Shipping',
+  title: 'Shipping & Logistics',
+  description: 'Manage delivery zones, shipping methods, and courier charges.',
 };
 
-export default function AdminRoutePage() {
-  return (
-    <RoutePlaceholder
-      title="Shipping"
-      route="/admin/shipping"
-      description="Delivery zones, courier rates, and shipment tracking foundation."
-    />
-  );
+export default function ShippingPage() {
+  return <ShippingManager />;
 }
