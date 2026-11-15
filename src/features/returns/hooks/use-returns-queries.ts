@@ -49,6 +49,8 @@ export function useReviewReturnMutation() {
       const verb = ret.status === 'APPROVED' ? 'approved' : 'rejected';
       toast.success(`Return request #${ret.returnNumber} ${verb} successfully`);
       queryClient.invalidateQueries({ queryKey: returnsKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : 'Failed to process return review';
@@ -65,6 +67,8 @@ export function useReceiveReturnMutation() {
     onSuccess: (ret) => {
       toast.success(`Return items inspected and processed successfully (Status: ${ret.status})`);
       queryClient.invalidateQueries({ queryKey: returnsKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : 'Failed to inspect and receive return items';

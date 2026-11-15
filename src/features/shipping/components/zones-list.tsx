@@ -20,15 +20,19 @@ export interface ZonesListProps {
 
 export function ZonesList({ zones, isLoading, onEditZone, onCreateZone }: ZonesListProps) {
   const [zoneToDelete, setZoneToDelete] = useState<ShippingZoneEntity | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const deleteMutation = useDeleteZoneMutation();
 
   const handleDeleteConfirm = async () => {
     if (!zoneToDelete) return;
     try {
+      setDeleteError(null);
       await deleteMutation.mutateAsync(zoneToDelete.id);
       setZoneToDelete(null);
-    } catch {
-      // Handled by mutation toast
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete shipping zone';
+      setDeleteError(msg);
+      throw err;
     }
   };
 
@@ -137,9 +141,28 @@ export function ZonesList({ zones, isLoading, onEditZone, onCreateZone }: ZonesL
 
       <ConfirmDialog
         open={Boolean(zoneToDelete)}
-        onOpenChange={(open) => !open && setZoneToDelete(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setZoneToDelete(null);
+            setDeleteError(null);
+          }
+        }}
         title={`Delete Zone "${zoneToDelete?.name}"?`}
-        description="Are you sure you want to delete this shipping zone? Any delivery calculation rules mapped to this zone may fail if orders are placed for its districts."
+        description={
+          <div className="space-y-2">
+            <p>
+              Are you sure you want to delete this shipping zone? Any delivery calculation rules mapped to this zone may fail if orders are placed for its districts.
+            </p>
+            {deleteError && (
+              <div
+                className="rounded-lg bg-destructive/10 p-2.5 text-xs font-medium text-destructive border border-destructive/20"
+                role="alert"
+              >
+                {deleteError}
+              </div>
+            )}
+          </div>
+        }
         variant="destructive"
         confirmLabel="Delete Zone"
         isLoading={deleteMutation.isPending}

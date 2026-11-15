@@ -168,6 +168,61 @@ describe('Phase 7B: Shipping & Logistics', () => {
       expect(screen.getByText('Gazipur')).toBeInTheDocument();
     });
 
+    it('displays error banner inside ConfirmDialog when zone delete fails with constraint error', async () => {
+      mockDeleteZoneMutateAsync.mockRejectedValueOnce(
+        new Error('Cannot delete zone: linked shipping methods exist (P2003)')
+      );
+
+      render(
+        <AppProviders>
+          <ZonesList
+            zones={mockZones}
+            isLoading={false}
+            onEditZone={vi.fn()}
+            onCreateZone={vi.fn()}
+          />
+        </AppProviders>
+      );
+
+      const deleteBtns = screen.getAllByRole('button', { name: /delete/i });
+      const firstDeleteBtn = deleteBtns[0];
+      expect(firstDeleteBtn).toBeDefined();
+      if (!firstDeleteBtn) throw new Error('Delete button not found');
+      fireEvent.click(firstDeleteBtn);
+
+      expect(screen.getByText(/Delete Zone "Inside Dhaka City"\?/i)).toBeInTheDocument();
+
+      const confirmDeleteBtn = screen.getByRole('button', { name: 'Delete Zone' });
+      fireEvent.click(confirmDeleteBtn);
+
+      await waitFor(() => {
+        expect(mockDeleteZoneMutateAsync).toHaveBeenCalledWith('zone-dhaka');
+      });
+
+      expect(
+        await screen.findByText(/Cannot delete zone: linked shipping methods exist \(P2003\)/i)
+      ).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    it('hides edit and delete actions when user lacks shipping:manage permission', () => {
+      setupPermissions(['shipping:read'], false);
+
+      render(
+        <AppProviders>
+          <ZonesList
+            zones={mockZones}
+            isLoading={false}
+            onEditZone={vi.fn()}
+            onCreateZone={vi.fn()}
+          />
+        </AppProviders>
+      );
+
+      expect(screen.queryByRole('button', { name: /edit/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
+    });
+
     it('validates zone name and district selection in ZoneFormModal', async () => {
       render(
         <AppProviders>

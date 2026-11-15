@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AppProviders } from '@/components/providers/app-providers';
 import {
   ReturnsTable,
+  ReturnsFilterBar,
   ReturnDetailModal,
   ReturnInspectModal,
   ReturnActionsSection,
@@ -11,15 +12,19 @@ import {
 import * as usePermissionsHook from '@/hooks/use-permissions';
 import type * as ReturnsQueriesModule from '@/features/returns/hooks/use-returns-queries';
 
+let mockSearchParams = new URLSearchParams();
+const mockPush = vi.fn();
+const mockReplace = vi.fn();
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
+    push: mockPush,
+    replace: mockReplace,
     back: vi.fn(),
     prefetch: vi.fn(),
   }),
   usePathname: () => '/admin/returns',
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mockSearchParams,
 }));
 
 let currentMockReturn: ReturnRequestEntity | null = null;
@@ -118,6 +123,9 @@ function setupPermissions(permissions: string[], isSuperAdmin = false) {
 describe('Phase 7B: Returns & RMA Workflow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSearchParams = new URLSearchParams();
+    mockPush.mockClear();
+    mockReplace.mockClear();
     currentMockReturn = { ...mockReturnItem };
     setupPermissions(['return:read', 'return:manage'], true);
   });
@@ -247,6 +255,45 @@ describe('Phase 7B: Returns & RMA Workflow', () => {
           },
         });
       });
+    });
+  });
+
+  describe('5. Filter Bar & URL-param State Sync', () => {
+    it('renders search and status from URL query params and triggers navigation on change', () => {
+      mockSearchParams = new URLSearchParams('search=RET-202611&status=APPROVED');
+
+      render(
+        <AppProviders>
+          <ReturnsFilterBar />
+        </AppProviders>
+      );
+
+      const searchInput = screen.getByPlaceholderText(/search by return #, order #/i);
+      expect(searchInput).toHaveValue('RET-202611');
+
+      const select = screen.getByLabelText(/filter by return status/i);
+      expect(select).toHaveValue('APPROVED');
+
+      fireEvent.change(searchInput, { target: { value: 'RET-NEW' } });
+      expect(mockReplace).toHaveBeenCalledWith(expect.stringContaining('search=RET-NEW'), { scroll: false });
+
+      fireEvent.change(select, { target: { value: 'REJECTED' } });
+      expect(mockReplace).toHaveBeenCalledWith(expect.stringContaining('status=REJECTED'), { scroll: false });
+    });
+  });
+
+  describe('6. Permission Gates', () => {
+    it('hides operational action buttons for unprivileged staff', () => {
+      setupPermissions(['return:read'], false);
+
+      render(
+        <AppProviders>
+          <ReturnActionsSection returnRequest={mockReturnItem} />
+        </AppProviders>
+      );
+
+      expect(screen.queryByRole('button', { name: /approve return request/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /reject return request/i })).not.toBeInTheDocument();
     });
   });
 });

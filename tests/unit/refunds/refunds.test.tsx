@@ -3,6 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AppProviders } from '@/components/providers/app-providers';
 import {
   RefundsTable,
+  RefundsFilterBar,
+  RefundsManager,
   RefundDetailModal,
   CreateRefundModal,
   type RefundEntity,
@@ -10,15 +12,19 @@ import {
 import * as usePermissionsHook from '@/hooks/use-permissions';
 import type * as RefundsQueriesModule from '@/features/refunds/hooks/use-refunds-queries';
 
+let mockSearchParams = new URLSearchParams();
+const mockPush = vi.fn();
+const mockReplace = vi.fn();
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
+    push: mockPush,
+    replace: mockReplace,
     back: vi.fn(),
     prefetch: vi.fn(),
   }),
   usePathname: () => '/admin/refunds',
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mockSearchParams,
 }));
 
 let currentMockRefund: RefundEntity | null = null;
@@ -97,6 +103,9 @@ function setupPermissions(permissions: string[], isSuperAdmin = false) {
 describe('Phase 7B: Refunds & Settlements', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSearchParams = new URLSearchParams();
+    mockPush.mockClear();
+    mockReplace.mockClear();
     currentMockRefund = { ...mockRefundItem };
     setupPermissions(['refund:read', 'refund:approve'], true);
   });
@@ -172,6 +181,44 @@ describe('Phase 7B: Refunds & Settlements', () => {
           manualReference: undefined,
         });
       });
+    });
+  });
+
+  describe('4. Filter Bar & URL-param State Sync', () => {
+    it('renders search and status from URL query params and triggers navigation on change', () => {
+      mockSearchParams = new URLSearchParams('search=ORD-202611&status=COMPLETED');
+
+      render(
+        <AppProviders>
+          <RefundsFilterBar />
+        </AppProviders>
+      );
+
+      const searchInput = screen.getByPlaceholderText(/search by order #, payment id/i);
+      expect(searchInput).toHaveValue('ORD-202611');
+
+      const select = screen.getByLabelText(/filter by refund status/i);
+      expect(select).toHaveValue('COMPLETED');
+
+      fireEvent.change(searchInput, { target: { value: 'ORD-NEW' } });
+      expect(mockReplace).toHaveBeenCalledWith(expect.stringContaining('search=ORD-NEW'), { scroll: false });
+
+      fireEvent.change(select, { target: { value: 'FAILED' } });
+      expect(mockReplace).toHaveBeenCalledWith(expect.stringContaining('status=FAILED'), { scroll: false });
+    });
+  });
+
+  describe('5. Permission Gates & Actions', () => {
+    it('hides Issue Order Refund button when user lacks refund:approve permission', () => {
+      setupPermissions(['refund:read'], false);
+
+      render(
+        <AppProviders>
+          <RefundsManager />
+        </AppProviders>
+      );
+
+      expect(screen.queryByRole('button', { name: /issue order refund/i })).not.toBeInTheDocument();
     });
   });
 });

@@ -25,15 +25,19 @@ export function MethodsTable({
   onCreateMethod,
 }: MethodsTableProps) {
   const [methodToDelete, setMethodToDelete] = useState<ShippingMethodEntity | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const deleteMutation = useDeleteMethodMutation();
 
   const handleDeleteConfirm = async () => {
     if (!methodToDelete) return;
     try {
+      setDeleteError(null);
       await deleteMutation.mutateAsync(methodToDelete.id);
       setMethodToDelete(null);
-    } catch {
-      // Handled by toast
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete shipping method';
+      setDeleteError(msg);
+      throw err;
     }
   };
 
@@ -159,9 +163,28 @@ export function MethodsTable({
 
       <ConfirmDialog
         open={Boolean(methodToDelete)}
-        onOpenChange={(open) => !open && setMethodToDelete(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMethodToDelete(null);
+            setDeleteError(null);
+          }
+        }}
         title={`Delete Method "${methodToDelete?.name}"?`}
-        description="Are you sure you want to delete this shipping method? Customers in this zone will no longer see this shipping option at checkout."
+        description={
+          <div className="space-y-2">
+            <p>
+              Are you sure you want to delete this shipping method? Customers in this zone will no longer see this shipping option at checkout.
+            </p>
+            {deleteError && (
+              <div
+                className="rounded-lg bg-destructive/10 p-2.5 text-xs font-medium text-destructive border border-destructive/20"
+                role="alert"
+              >
+                {deleteError}
+              </div>
+            )}
+          </div>
+        }
         variant="destructive"
         confirmLabel="Delete Method"
         isLoading={deleteMutation.isPending}
