@@ -1,17 +1,11 @@
 import type { Metadata } from 'next';
-
-import { RoutePlaceholder } from '@/components/shared/route-placeholder';
+import { StaffManager } from '@/features/staff/components/staff-manager';
 
 export const metadata: Metadata = {
-  title: 'Staff',
+  title: 'Staff Management | DIANO Admin',
+  description: 'Manage admin staff accounts, permissions, and operational status.',
 };
 
-export default function AdminRoutePage() {
-  return (
-    <RoutePlaceholder
-      title="Staff"
-      route="/admin/staff"
-      description="Admin staff accounts and operational status management foundation."
-    />
-  );
+export default function AdminStaffPage() {
+  return <StaffManager />;
 }
