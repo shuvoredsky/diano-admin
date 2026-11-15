@@ -6,13 +6,12 @@ import { useTheme } from 'next-themes';
 import { useAppDispatch } from '@/store/hooks';
 import { setMobileSidebarOpen } from '@/store/slices/ui.slice';
 import { usePermissions } from '@/hooks/use-permissions';
-import { useSocketLifecycle } from '@/features/auth/hooks';
 import { logoutAdmin } from '@/features/auth/api/auth.api';
 import { Breadcrumbs } from './breadcrumbs';
+import { NotificationBell } from '@/features/notifications/components/notification-bell';
 import {
   Menu,
   Search,
-  Bell,
   Sun,
   Moon,
   Laptop,
@@ -29,7 +28,6 @@ export function Topbar() {
   const { user, isSuperAdmin, roles } = usePermissions();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
-  const { isConnected, hasUnreadNotification, clearNotificationIndicator } = useSocketLifecycle();
 
   const handleLogout = async () => {
     try {
@@ -76,20 +74,7 @@ export function Topbar() {
         </div>
 
         {/* Notifications Bell */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={clearNotificationIndicator}
-            className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-mint/40 hover:text-foreground transition-colors"
-            title={isConnected ? 'Real-time WebSocket connected' : 'Connecting real-time service...'}
-            aria-label="Notifications"
-          >
-            <Bell className="h-4 w-4" />
-            {hasUnreadNotification && (
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-card animate-pulse" />
-            )}
-          </button>
-        </div>
+        <NotificationBell />
 
         {/* Theme Toggle Dropdown */}
         <div className="relative">

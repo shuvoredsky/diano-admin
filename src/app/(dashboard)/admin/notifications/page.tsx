@@ -1,17 +1,11 @@
 import type { Metadata } from 'next';
-
-import { RoutePlaceholder } from '@/components/shared/route-placeholder';
+import { NotificationsManager } from '@/features/notifications/components/notifications-manager';
 
 export const metadata: Metadata = {
-  title: 'Notifications',
+  title: 'Notifications | DIANO Admin',
+  description: 'Real-time Socket.IO admin alerts and outbox delivery logs.',
 };
 
-export default function AdminRoutePage() {
-  return (
-    <RoutePlaceholder
-      title="Notifications"
-      route="/admin/notifications"
-      description="Real-time Socket.IO admin alerts and outbox delivery logs foundation."
-    />
-  );
+export default function AdminNotificationsPage() {
+  return <NotificationsManager />;
 }
