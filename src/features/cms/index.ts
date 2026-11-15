@@ -19,3 +19,17 @@ export * from './components/settings/invoice-settings-form';
 export * from './components/settings/seo-defaults-form';
 export * from './components/settings/contact-settings-form';
 export * from './components/settings/settings-manager';
+
+// Pages
+export * from './types/pages.types';
+export * from './constants/pages.constants';
+export * from './api/pages.api';
+export * from './hooks/use-pages-queries';
+export * from './components/pages/pages-table';
+export * from './components/pages/pages-filter-bar';
+export * from './components/pages/page-form-modal';
+export * from './components/pages/page-revisions-modal';
+export * from './components/pages/pages-manager';
+
+// Unified CMS Manager
+export * from './components/cms-manager';

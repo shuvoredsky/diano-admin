@@ -1,17 +1,11 @@
 import type { Metadata } from 'next';
-
-import { RoutePlaceholder } from '@/components/shared/route-placeholder';
+import { CmsManager } from '@/features/cms';
 
 export const metadata: Metadata = {
-  title: 'CMS',
+  title: 'Content Management & Branding | DIANO Admin',
+  description: 'Manage storefront promotional banners, static legal pages, revisions, and store settings.',
 };
 
-export default function AdminRoutePage() {
-  return (
-    <RoutePlaceholder
-      title="CMS"
-      route="/admin/cms"
-      description="Storefront banners, static pages, branding settings, and content revisions foundation."
-    />
-  );
+export default function CmsPage() {
+  return <CmsManager />;
 }
