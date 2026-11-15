@@ -9,3 +9,13 @@ export * from './components/banners/banners-table';
 export * from './components/banners/banners-filter-bar';
 export * from './components/banners/banner-form-modal';
 export * from './components/banners/banners-manager';
+
+// Settings
+export * from './types/settings.types';
+export * from './api/settings.api';
+export * from './hooks/use-settings-queries';
+export * from './components/settings/store-profile-form';
+export * from './components/settings/invoice-settings-form';
+export * from './components/settings/seo-defaults-form';
+export * from './components/settings/contact-settings-form';
+export * from './components/settings/settings-manager';
