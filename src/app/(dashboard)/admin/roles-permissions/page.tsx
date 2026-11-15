@@ -1,17 +1,11 @@
 import type { Metadata } from 'next';
-
-import { RoutePlaceholder } from '@/components/shared/route-placeholder';
+import { RolesManager } from '@/features/roles-permissions/components/roles-manager';
 
 export const metadata: Metadata = {
-  title: 'Roles & Permissions',
+  title: 'Roles & Permissions | DIANO Admin',
+  description: 'Role hierarchy and granular RBAC permission assignment.',
 };
 
-export default function AdminRoutePage() {
-  return (
-    <RoutePlaceholder
-      title="Roles & Permissions"
-      route="/admin/roles-permissions"
-      description="Role hierarchy and granular RBAC permission assignment foundation."
-    />
-  );
+export default function AdminRolesPermissionsPage() {
+  return <RolesManager />;
 }
