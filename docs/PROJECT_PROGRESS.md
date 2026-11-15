@@ -302,4 +302,44 @@
   - Full test suite: 40 test files, 269 unit tests passing (0 failed, 0 skipped).
   - TypeScript: 0 errors; ESLint: 0 warnings, 0 errors; clean production build.
 
+---
+
+## Phase 9B Delivery Summary: Management, Roles, Staff & Audit Trails (Completed 2026-11-15)
+- **Notification Center & Delivery Outbox Logs (`/admin/notifications`)**:
+  - In-app notification center popover and full page views with mark as read (`PATCH /notifications/:id/read`) and mark all read (`POST /notifications/read-all`).
+  - Topbar `NotificationBell` dynamically shows real unread count directly from backend `pagination.unreadCount` (BG-17), debounced real-time synchronization with `notification:new` socket event on `admin:all` / `user:<id>` rooms.
+  - Global notification delivery outbox logs table gated with `notification:manage` (`GET /admin/notifications`), with exponential retry action via `ConfirmDialog` (`POST /admin/notifications/:id/retry`).
+  - Strict HTML escaping / XSS protection preventing script execution from notification payloads.
+- **Staff Management (`/admin/staff`)**:
+  - Server-side staff list (`GET /users`) with search, role, and status filters synchronized with URL search params.
+  - Staff creation & editing (`POST /users`, `PATCH /users/:id`) with role assignments and optional initial password or auto-generation.
+  - Passwords are strictly hashed on backend and NEVER displayed or logged in plaintext.
+  - Privilege escalation protection: surfaces backend error messages as-is when lower-tier staff attempt unauthorized role escalation.
+  - Account status lifecycle: Activate / Suspend (`PATCH /users/:id/status`) and soft delete (`DELETE /users/:id`) guarded by `ConfirmDialog`.
+  - Self-suspension and last active Super Administrator safety policies enforced: displays exact backend safety error message.
+  - Active session revocation (`POST /users/:id/revoke-sessions`) with confirmation dialog.
+- **Roles & Granular RBAC Permissions Matrix (`/admin/roles-permissions`)**:
+  - Roles list with system and custom badges, permissions count, and active assignment badges.
+  - Protected system roles (`SUPER_ADMIN`, `ADMIN`, `MANAGER`, `CUSTOMER`): editing slug/name and deletion are strictly disabled.
+  - Role creation & editing modal (`POST /roles`, `PATCH /roles/:id`) with lowercase kebab-case slug validation.
+  - Dynamic permissions matrix constructed directly from backend catalog (`GET /permissions`), grouped by resource module (`order`, `product`, `inventory`, `cms`, etc.).
+  - Select-all / deselect-all per module, disabled/locked permissions for Super Administrator role.
+  - Interactive permission changes summary in `ConfirmDialog` highlighting exact added (green) and removed (red) permissions before applying (`PUT /roles/:id/permissions`).
+  - Self-lockout warning: explicit alert banner when modifying permissions of the currently logged-in user's role.
+  - Role deletion safety: displays backend error when role has active user assignments.
+- **Audit Logs & Security Events (`/admin/audit-logs`)**:
+  - Read-only, append-only security audit trail (`GET /admin/audit-logs`, `GET /admin/audit-logs/:id`) with zero create/edit/delete buttons.
+  - Multi-criteria filter bar: actor name/email, action type, target entity, and Asia/Dhaka calendar date range (`from` / `to`).
+  - Detail inspection modal with comprehensive metadata viewer: actor info, action, target, IP address, user agent, request ID, and Asia/Dhaka timestamps.
+  - Client-side sensitive data masking: recursively sanitizes and masks passwords, tokens, API keys, session cookies, and CVVs (`maskSensitiveData`), replacing them with `[REDACTED]`.
+  - Access restricted behind `audit:view` permission gate (`PermissionGate`).
+- **Verification & Tests**:
+  - `tests/unit/notifications/notifications.test.tsx`: 8 unit tests covering bell popover, unread badge from `pagination.unreadCount`, mark read, mark all read, outbox table, and retry flow.
+  - `tests/unit/staff/staff.test.tsx`: 7 unit tests covering table rendering, staff creation, privilege escalation error handling, suspend/activate, self-suspension/last-admin safety policy, and session revocation.
+  - `tests/unit/roles/roles.test.tsx`: 6 unit tests covering system role protection, role form validation, permission matrix module grouping, added/removed diff dialog, self-lockout warning, and active assignment deletion error.
+  - `tests/unit/audit-logs/audit-logs.test.tsx`: 6 unit tests covering read-only table assertions, zero mutation UI elements guarantee, detail modal sensitive field redaction, recursive masking utility edge cases, and `audit:view` permission gate.
+  - Full test suite: 45 test files, 310 unit tests passing (0 failed, 0 skipped).
+  - TypeScript: 0 errors; ESLint: 0 warnings, 0 errors; Next.js 16.4.6 build: 36/36 static/dynamic routes.
+
+
 
