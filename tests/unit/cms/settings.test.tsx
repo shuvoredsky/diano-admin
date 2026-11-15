@@ -152,6 +152,51 @@ describe('Phase 9A: Store Settings Management', () => {
         );
       });
     });
+
+    it('handles image upload failure state and displays error notice', async () => {
+      mockUploadLogoMutateAsync.mockRejectedValueOnce(
+        new Error('Cloudinary credentials missing or image format not accepted')
+      );
+
+      render(
+        <AppProviders>
+          <StoreProfileForm />
+        </AppProviders>
+      );
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      expect(fileInput).not.toBeNull();
+
+      const testFile = new File(['dummy'], 'logo.png', { type: 'image/png' });
+      fireEvent.change(fileInput, { target: { files: [testFile] } });
+
+      expect(
+        await screen.findByText(/Cloudinary credentials missing or image format not accepted/i)
+      ).toBeInTheDocument();
+    });
+
+    it('maps backend validation errors onto error alert banner upon profile update failure', async () => {
+      mockUpdateSettingsMutateAsync.mockRejectedValueOnce({
+        response: {
+          data: {
+            message: 'Store phone number is invalid for Bangladesh (+880)',
+          },
+        },
+      });
+
+      render(
+        <AppProviders>
+          <StoreProfileForm />
+        </AppProviders>
+      );
+
+      const saveBtn = screen.getByRole('button', { name: /save profile settings/i });
+      fireEvent.click(saveBtn);
+
+      expect(
+        await screen.findByText(/Store phone number is invalid for Bangladesh/i)
+      ).toBeInTheDocument();
+    });
   });
 
   describe('2. Invoice Settings Form', () => {

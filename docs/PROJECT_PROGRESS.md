@@ -265,9 +265,41 @@
   - Strict financial protection: Financial statement tab and export strictly guarded behind `analytics:view_finance` (shows "Restricted Financial Access" card when unauthorized; never recomputes or masks financial figures client-side).
   - BG-07 compliance: Informational notice detailing that standalone exports for products, payments, and expenses are integrated directly into the 5 core export streams.
 - **Verification & Tests**:
-  - `tests/unit/reviews/reviews.test.tsx`: 7 unit tests covering table rendering, delete confirmation, URL param sync, approve/reject flow, XSS HTML escaping safety, and permission gates.
+  - `tests/unit/reviews/reviews.test.tsx`: 8 unit tests covering table rendering, delete confirmation, URL param sync, approve/reject flow, XSS HTML escaping safety, Cloudinary host restriction, and permission gates.
   - `tests/unit/expenses/expenses.test.tsx`: 8 unit tests covering table rendering, delete confirmation, category/date URL filtering, exact decimal validation, backend error mapping, dirty form guard, and permission gates.
   - `tests/unit/reports/reports.test.tsx`: 8 unit tests covering tab switching, live API snapshot display, pure MoneyText figures, blob export dispatch, error-in-blob extraction, and `analytics:view_finance` access restrictions.
-  - Full test suite: 37 test files, 242 unit tests passing (0 failed, 0 skipped).
+  - Full test suite: 37 test files, 246 unit tests passing (0 failed, 0 skipped).
   - TypeScript: 0 errors; ESLint: 0 warnings, 0 errors; clean production build.
+
+---
+
+## Phase 9A Delivery Summary: CMS & Store Branding (Completed 2026-11-15)
+- **Promotional Banners & Carousels (`/admin/cms?tab=banners`)**:
+  - Full server-side CRUD with pagination and URL search params (`placement`, `isActive`, `page`, `limit`).
+  - Supported placements: `HOME_HERO`, `HOME_SECONDARY`, `CATEGORY_TOP`, `ANNOUNCEMENT_BAR`, `POPUP`.
+  - Schedule management in Asia/Dhaka time (`startsAt`, `endsAt`), active status toggle (`PATCH /banners/:id/toggle`), and drag/order support (`PUT /banners/reorder`).
+  - Form validation with `useDirtyFormGuard`, double-submission blocking, and backend error mapping.
+  - Deletion guarded by `ConfirmDialog` and permission-gated with `banner:manage`.
+- **Store Branding & Configuration (`/admin/cms?tab=settings` & `/admin/settings`)**:
+  - Four backend-supported groups: `store_profile`, `invoice`, `seo_defaults`, `contact`.
+  - Brand Assets: Real multipart upload flow for Store Logo (`POST /settings/logo`) and Browser Favicon (`POST /settings/favicon`).
+  - Invoice PDF template configuration: prefix, footer note, exchange policy clause, and logo print toggle.
+  - SEO Defaults: Browser title template (`%s | DIANO Premium Heritage`), meta description, and OpenGraph social share image.
+  - Customer Care Helplines: Support phone, support email, return depot address, and Dhaka operating hours.
+  - Security Banner: Explicitly documents that payment gateway keys (SSLCOMMERZ), SMS tokens, and SMTP credentials are configured strictly in server `.env` and are never exposed or requested in the UI.
+  - Guarded with `useDirtyFormGuard` and permission-gated with `settings:update`.
+- **Static Pages & Versioned Revisions (`/admin/cms?tab=pages`)**:
+  - Full CRUD for informational and legal policy pages (`privacy-policy`, `terms`, `return-policy`, `shipping-policy`, and custom slugs).
+  - Sanitized RichTextEditor with markdown/HTML preview escaping raw script execution.
+  - Publish / Unpublish workflow (`POST /pages/:id/publish`, `POST /pages/:id/unpublish`).
+  - Revision history list (`GET /pages/:id/revisions`) with revision preview and rollback restoration (`POST /pages/:id/revisions/:version/restore`) guarded by `ConfirmDialog`.
+  - Slug immutability on edit and unique slug 409 conflict handling.
+  - Legal Advisory Banner: Advises administrators that statutory policies must be authored/reviewed by legal counsel.
+- **Verification & Tests**:
+  - `tests/unit/cms/banners.test.tsx`: 7 unit tests covering table rendering, delete confirmation, placement/status filtering, form validation with Dhaka schedules, conflict error mapping, and `banner:manage` permission gates.
+  - `tests/unit/cms/settings.test.tsx`: 10 unit tests covering store profile fields, logo upload failure handling, backend error mapping, invoice prefix validation, SEO defaults, contact helplines, security notices, tab switching, and `settings:update` gates.
+  - `tests/unit/cms/pages.test.tsx`: 7 unit tests covering page listing, publish/unpublish mutation triggers, slug kebab-case validation, 409 conflict mapping, sanitized rich text preview XSS safety, revision rollback confirmation, and `page:manage` gates.
+  - Full test suite: 40 test files, 269 unit tests passing (0 failed, 0 skipped).
+  - TypeScript: 0 errors; ESLint: 0 warnings, 0 errors; clean production build.
+
 

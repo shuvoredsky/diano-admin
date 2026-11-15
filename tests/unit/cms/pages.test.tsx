@@ -274,6 +274,21 @@ describe('Phase 9A: Pages & Revisions Management', () => {
         await screen.findByText(/A page with this slug already exists/i)
       ).toBeInTheDocument();
     });
+
+    it('safely renders rich text preview escaping script tags avoiding XSS execution', () => {
+      render(
+        <AppProviders>
+          <PageFormModal open={true} onOpenChange={vi.fn()} pageToEdit={mockPagePrivacyDraft} />
+        </AppProviders>
+      );
+
+      const previewTab = screen.getByRole('button', { name: /preview/i });
+      fireEvent.click(previewTab);
+
+      // Verifies <script> tag is escaped as text content, not executed
+      expect(screen.getByText(/<script>alert\("xss"\)<\/script>/i)).toBeInTheDocument();
+      expect((window as unknown as { __xss?: boolean }).__xss).toBeUndefined();
+    });
   });
 
   describe('3. Revision History & Rollback Modal', () => {
