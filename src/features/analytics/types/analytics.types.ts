@@ -111,3 +111,18 @@ export interface RecentOrderItem {
   placedAt: string;
 }
 
+export interface AnalyticsRevenueResponse {
+  period: AnalyticsPeriod;
+  grossSales: number;
+  discounts: {
+    total: number;
+    itemDiscounts: number;
+    couponDiscounts: number;
+    flashSaleDiscounts: number;
+  };
+  refunds: number;
+  shippingRevenue: number;
+  taxRevenue: number;
+  netSales: number;
+}
+

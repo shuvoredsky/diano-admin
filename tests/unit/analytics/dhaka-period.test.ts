@@ -67,6 +67,35 @@ describe('Asia/Dhaka Period Calculations & Boundary Rules', () => {
     expect(resolvedJan.startDate.toISOString()).toBe('2025-11-30T18:00:00.000Z');
   });
 
+  it('resolves "this_week" boundaries starting on Saturday in Bangladesh', () => {
+    // Reference date: Thursday, Nov 12, 2026 (dayOfWeek 4 in UTC+6)
+    // Saturday was Nov 7, 2026
+    const ref = createDhakaDate(2026, 11, 12, 14, 0, 0);
+    const resolved = resolveClientDhakaPeriod('this_week', undefined, undefined, ref);
+
+    expect(resolved.startDateIso).toBe('2026-11-07');
+    expect(resolved.endDateIso).toBe('2026-11-13');
+  });
+
+  it('resolves "last_week" boundaries starting on previous Saturday in Bangladesh', () => {
+    const ref = createDhakaDate(2026, 11, 12, 14, 0, 0);
+    const resolved = resolveClientDhakaPeriod('last_week', undefined, undefined, ref);
+
+    expect(resolved.startDateIso).toBe('2026-10-31');
+    expect(resolved.endDateIso).toBe('2026-11-06');
+  });
+
+  it('resolves "this_year" and "last_year" boundaries accurately in Dhaka', () => {
+    const ref = createDhakaDate(2026, 11, 12, 14, 0, 0);
+    const resolvedThisYear = resolveClientDhakaPeriod('this_year', undefined, undefined, ref);
+    expect(resolvedThisYear.startDateIso).toBe('2026-01-01');
+    expect(resolvedThisYear.endDateIso).toBe('2026-12-31');
+
+    const resolvedLastYear = resolveClientDhakaPeriod('last_year', undefined, undefined, ref);
+    expect(resolvedLastYear.startDateIso).toBe('2025-01-01');
+    expect(resolvedLastYear.endDateIso).toBe('2025-12-31');
+  });
+
   describe('Percent Change Financial Calculation', () => {
     it('returns positive and negative percentage deltas', () => {
       expect(calculatePercentChange(120, 100)).toBe(20.0);

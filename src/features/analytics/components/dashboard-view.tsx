@@ -16,11 +16,13 @@ import { useDashboardPeriod } from '../hooks/use-dashboard-period';
 import { useDashboardRealtime } from '../hooks/use-dashboard-realtime';
 import {
   useAnalyticsOverviewQuery,
+  useAnalyticsRevenueQuery,
   useAnalyticsChartQuery,
   useAnalyticsProductsQuery,
   useRecentOrdersQuery,
   useLowStockQuery,
 } from '../hooks/use-analytics-queries';
+import { useInventorySummaryQuery } from '@/features/inventory/hooks/use-inventory-queries';
 import type {
   SalesTrendPoint,
   OrderStatusPoint,
@@ -38,8 +40,10 @@ export function DashboardView() {
   const queryParams = { period, from, to, compare };
   const chartParams = { period, from, to };
 
-  // 1. Overview KPIs
+  // 1. Overview KPIs & Inventories
   const overviewQuery = useAnalyticsOverviewQuery(queryParams);
+  const revenueQuery = useAnalyticsRevenueQuery(queryParams);
+  const inventorySummaryQuery = useInventorySummaryQuery();
 
   // 2. Charts (Parallel, isolated error states)
   const salesTrendQuery = useAnalyticsChartQuery<SalesTrendPoint>('sales-trend', chartParams);
@@ -98,10 +102,17 @@ export function DashboardView() {
         <h2 id="kpi-metrics-heading" className="sr-only">Key Performance Indicators</h2>
         <KpiGrid
           data={overviewQuery.data}
-          loading={overviewQuery.isLoading}
+          revenueData={revenueQuery.data}
+          inventorySummary={inventorySummaryQuery.data}
+          loading={overviewQuery.isLoading || revenueQuery.isLoading}
+          inventoryLoading={inventorySummaryQuery.isLoading}
           error={overviewQuery.isError ? (overviewQuery.error as Error).message : null}
           compare={compare}
-          onRetry={() => overviewQuery.refetch()}
+          onRetry={() => {
+            overviewQuery.refetch();
+            revenueQuery.refetch();
+            inventorySummaryQuery.refetch();
+          }}
         />
       </section>
 

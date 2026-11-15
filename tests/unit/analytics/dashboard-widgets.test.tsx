@@ -61,6 +61,32 @@ const mockOverviewData: AnalyticsOverviewData = {
   },
 };
 
+const mockInventorySummary = {
+  totalProducts: 45,
+  totalStockUnits: 1250,
+  available: 1100,
+  reserved: 100,
+  damaged: 50,
+  stockValue: '1500000.00',
+  damageValue: '60000.00',
+  netStockValue: '1440000.00',
+};
+
+const mockRevenueData = {
+  period: 'this_month' as const,
+  grossSales: 150000,
+  discounts: {
+    total: 10000,
+    itemDiscounts: 4000,
+    couponDiscounts: 5000,
+    flashSaleDiscounts: 1000,
+  },
+  refunds: 2000,
+  shippingRevenue: 5000,
+  taxRevenue: 0,
+  netSales: 140000,
+};
+
 describe('Dashboard Widgets, Permissions, and Isolated Failures', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -70,10 +96,10 @@ describe('Dashboard Widgets, Permissions, and Isolated Failures', () => {
   });
 
   describe('KPI Cards Grid', () => {
-    it('renders all 12 KPI cards with correct values and compare indicators', () => {
+    it('renders all 12 required KPI cards with correct values and compare indicators', () => {
       vi.spyOn(authPermissionsHook, 'useAuthPermissions').mockReturnValue({
         user: undefined,
-        permissions: ['analytics:view', 'analytics:view_finance'],
+        permissions: ['analytics:view', 'inventory:view_cost'],
         roles: ['admin'],
         isSuperAdmin: true,
         isLoading: false,
@@ -85,28 +111,36 @@ describe('Dashboard Widgets, Permissions, and Isolated Failures', () => {
 
       render(
         <AppProviders>
-          <KpiGrid data={mockOverviewData} compare={true} />
+          <KpiGrid
+            data={mockOverviewData}
+            revenueData={mockRevenueData}
+            inventorySummary={mockInventorySummary}
+            compare={true}
+          />
         </AppProviders>
       );
 
-      expect(screen.getByText('Gross Sales')).toBeInTheDocument();
-      expect(screen.getByText('Net Sales')).toBeInTheDocument();
-      expect(screen.getByText('Delivered Sales')).toBeInTheDocument();
+      // The 12 required KPI cards
       expect(screen.getByText('Total Orders')).toBeInTheDocument();
-      expect(screen.getByText('Average Order Value')).toBeInTheDocument();
-      expect(screen.getByText('Items Sold')).toBeInTheDocument();
-      expect(screen.getByText('Cancellation Rate')).toBeInTheDocument();
-      expect(screen.getByText('Return Rate')).toBeInTheDocument();
-      expect(screen.getByText('Purchasing Customers')).toBeInTheDocument();
-      expect(screen.getByText('Repeat Customer Rate')).toBeInTheDocument();
-      expect(screen.getByText('Gross Profit')).toBeInTheDocument();
-      expect(screen.getByText('Net Profit')).toBeInTheDocument();
+      expect(screen.getByText('Undelivered Orders')).toBeInTheDocument();
+      expect(screen.getByText('Delivered Sales')).toBeInTheDocument();
+      expect(screen.getByText('Gross Sales')).toBeInTheDocument();
+      expect(screen.getByText('Discounts')).toBeInTheDocument();
+      expect(screen.getByText('Net Sales')).toBeInTheDocument();
+      expect(screen.getByText('Total Products')).toBeInTheDocument();
+      expect(screen.getByText('Total Stock Units')).toBeInTheDocument();
+      expect(screen.getByText('Stock Value')).toBeInTheDocument();
+      expect(screen.getByText('Damaged Quantity')).toBeInTheDocument();
+      expect(screen.getByText('Damage Value')).toBeInTheDocument();
+      expect(screen.getByText('Net Stock Value')).toBeInTheDocument();
 
       // Check formatted BDT
       expect(screen.getByText('৳ 150,000.00')).toBeInTheDocument();
+      expect(screen.getByText('৳ 10,000.00')).toBeInTheDocument();
+      expect(screen.getByText('৳ 1,500,000.00')).toBeInTheDocument();
     });
 
-    it('protects finance KPI cards (Gross/Net Profit) when analytics:view_finance is missing', () => {
+    it('protects cost KPI cards (Stock/Damage/Net Stock Value) when inventory:view_cost is missing', () => {
       vi.spyOn(authPermissionsHook, 'useAuthPermissions').mockReturnValue({
         user: undefined,
         permissions: ['analytics:view'],
@@ -114,22 +148,27 @@ describe('Dashboard Widgets, Permissions, and Isolated Failures', () => {
         isSuperAdmin: false,
         isLoading: false,
         isAuthenticated: true,
-        hasPermission: (perm) => perm !== 'analytics:view_finance',
+        hasPermission: (perm) => perm !== 'inventory:view_cost',
         hasAnyPermission: () => false,
         hasAllPermissions: () => false,
       });
 
       render(
         <AppProviders>
-          <KpiGrid data={mockOverviewData} compare={true} />
+          <KpiGrid
+            data={mockOverviewData}
+            revenueData={mockRevenueData}
+            inventorySummary={mockInventorySummary}
+            compare={true}
+          />
         </AppProviders>
       );
 
-      // Gross and Net Profit must show Restricted Access, never ৳0.00
+      // 3 cost cards must show Restricted Access, never ৳0.00
       const restrictedBadges = screen.getAllByText('Restricted Access');
-      expect(restrictedBadges.length).toBe(2);
-      expect(screen.queryByText('৳ 55,000.00')).not.toBeInTheDocument();
-      expect(screen.queryByText('৳ 38,000.00')).not.toBeInTheDocument();
+      expect(restrictedBadges.length).toBe(3);
+      expect(screen.queryByText('৳ 1,500,000.00')).not.toBeInTheDocument();
+      expect(screen.queryByText('৳ 60,000.00')).not.toBeInTheDocument();
     });
 
     it('renders error state on KPI grid without crashing and allows retry', () => {
@@ -162,6 +201,23 @@ describe('Dashboard Widgets, Permissions, and Isolated Failures', () => {
       fireEvent.change(select, { target: { value: 'today' } });
 
       expect(mockReplace).toHaveBeenCalledWith(expect.stringContaining('period=today'), { scroll: false });
+    });
+
+    it('provides all 11 period options in selector including week and year options', () => {
+      render(
+        <AppProviders>
+          <DashboardPeriodSelector />
+        </AppProviders>
+      );
+
+      const select = screen.getByLabelText(/Select reporting period/i);
+      expect(screen.getByRole('option', { name: 'This Week' })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'Last Week' })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'This Year' })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'Last Year' })).toBeInTheDocument();
+
+      fireEvent.change(select, { target: { value: 'this_week' } });
+      expect(mockReplace).toHaveBeenCalledWith(expect.stringContaining('period=this_week'), { scroll: false });
     });
 
     it('toggles compare parameter between true and false', () => {

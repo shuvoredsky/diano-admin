@@ -2,25 +2,33 @@
 
 import { KpiCard, type KpiPastel } from '@/components/shared/kpi-card';
 import { useAuthPermissions } from '@/features/auth/hooks';
-import type { AnalyticsOverviewData, KpiCardData } from '../types/analytics.types';
+import type {
+  AnalyticsOverviewData,
+  AnalyticsRevenueResponse,
+  KpiCardData,
+} from '../types/analytics.types';
+import type { InventorySummaryDto } from '@/features/inventory/types/inventory.types';
 import {
-  DollarSign,
-  TrendingUp,
-  Truck,
   ShoppingCart,
-  Receipt,
+  Clock,
+  Truck,
+  DollarSign,
+  Tag,
+  TrendingUp,
+  Layers,
   Package,
-  XCircle,
-  RotateCcw,
-  Users,
-  Repeat,
   BadgeDollarSign,
+  AlertTriangle,
+  XCircle,
   PieChart,
 } from 'lucide-react';
 
 export interface KpiGridProps {
   data?: AnalyticsOverviewData;
+  revenueData?: AnalyticsRevenueResponse;
+  inventorySummary?: InventorySummaryDto;
   loading?: boolean;
+  inventoryLoading?: boolean;
   error?: string | null;
   compare?: boolean;
   onRetry?: () => void;
@@ -29,14 +37,17 @@ export interface KpiGridProps {
 
 export function KpiGrid({
   data,
+  revenueData,
+  inventorySummary,
   loading = false,
+  inventoryLoading = false,
   error = null,
   compare = true,
   onRetry,
   className,
 }: KpiGridProps) {
   const { hasPermission } = useAuthPermissions();
-  const canViewFinance = hasPermission('analytics:view_finance');
+  const canViewCost = hasPermission('inventory:view_cost');
 
   const cards = data?.cards;
 
@@ -44,36 +55,16 @@ export function KpiGrid({
     id: string;
     title: string;
     field?: KpiCardData<number> | null;
+    rawCurrent?: number | string | null;
     isCurrency?: boolean;
     unit?: string;
     pastel: KpiPastel;
     icon: React.ReactNode;
-    requiresFinance?: boolean;
+    requiresCost?: boolean;
+    isSnapshot?: boolean;
+    note?: string;
   }> = [
-    {
-      id: 'gross-sales',
-      title: 'Gross Sales',
-      field: cards?.grossSales,
-      isCurrency: true,
-      pastel: 'default',
-      icon: <DollarSign className="h-4 w-4 text-primary" />,
-    },
-    {
-      id: 'net-sales',
-      title: 'Net Sales',
-      field: cards?.netSales,
-      isCurrency: true,
-      pastel: 'softgreen',
-      icon: <TrendingUp className="h-4 w-4 text-primary-deep dark:text-primary" />,
-    },
-    {
-      id: 'delivered-sales',
-      title: 'Delivered Sales',
-      field: cards?.deliveredSales,
-      isCurrency: true,
-      pastel: 'sky',
-      icon: <Truck className="h-4 w-4 text-sky-600 dark:text-sky-400" />,
-    },
+    // 1. Total Orders
     {
       id: 'total-orders',
       title: 'Total Orders',
@@ -82,71 +73,120 @@ export function KpiGrid({
       pastel: 'lavender',
       icon: <ShoppingCart className="h-4 w-4 text-purple-600 dark:text-purple-400" />,
     },
+    // 2. Undelivered Orders
     {
-      id: 'aov',
-      title: 'Average Order Value',
-      field: cards?.aov,
+      id: 'undelivered-orders',
+      title: 'Undelivered Orders',
+      field: cards?.undeliveredOrdersCount,
+      unit: 'orders',
+      pastel: 'peach',
+      icon: <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />,
+    },
+    // 3. Delivered Sales
+    {
+      id: 'delivered-sales',
+      title: 'Delivered Sales',
+      field: cards?.deliveredSales,
+      isCurrency: true,
+      pastel: 'sky',
+      icon: <Truck className="h-4 w-4 text-sky-600 dark:text-sky-400" />,
+    },
+    // 4. Gross Sales
+    {
+      id: 'gross-sales',
+      title: 'Gross Sales',
+      field: cards?.grossSales,
+      isCurrency: true,
+      pastel: 'default',
+      icon: <DollarSign className="h-4 w-4 text-primary" />,
+    },
+    // 5. Discounts
+    {
+      id: 'discounts',
+      title: 'Discounts',
+      rawCurrent: revenueData?.discounts?.total ?? null,
       isCurrency: true,
       pastel: 'peach',
-      icon: <Receipt className="h-4 w-4 text-amber-600 dark:text-amber-400" />,
+      icon: <Tag className="h-4 w-4 text-rose-600 dark:text-rose-400" />,
+      note: 'Coupons & campaign discounts',
     },
+    // 6. Net Sales
     {
-      id: 'items-sold',
-      title: 'Items Sold',
-      field: cards?.itemsSold,
-      unit: 'items',
-      pastel: 'default',
-      icon: <Package className="h-4 w-4 text-muted-foreground" />,
-    },
-    {
-      id: 'cancellation-rate',
-      title: 'Cancellation Rate',
-      field: cards?.cancellationRate,
-      unit: '%',
-      pastel: 'peach',
-      icon: <XCircle className="h-4 w-4 text-destructive" />,
-    },
-    {
-      id: 'return-rate',
-      title: 'Return Rate',
-      field: cards?.returnRate,
-      unit: '%',
-      pastel: 'lavender',
-      icon: <RotateCcw className="h-4 w-4 text-purple-600 dark:text-purple-400" />,
-    },
-    {
-      id: 'customer-count',
-      title: 'Purchasing Customers',
-      field: cards?.customerCount,
-      unit: 'customers',
-      pastel: 'sky',
-      icon: <Users className="h-4 w-4 text-sky-600 dark:text-sky-400" />,
-    },
-    {
-      id: 'repeat-customer-rate',
-      title: 'Repeat Customer Rate',
-      field: cards?.repeatCustomerRate,
-      unit: '%',
+      id: 'net-sales',
+      title: 'Net Sales',
+      field: cards?.netSales,
+      isCurrency: true,
       pastel: 'softgreen',
-      icon: <Repeat className="h-4 w-4 text-primary-deep dark:text-primary" />,
+      icon: <TrendingUp className="h-4 w-4 text-primary-deep dark:text-primary" />,
     },
+    // 7. Total Products
     {
-      id: 'gross-profit',
-      title: 'Gross Profit',
-      field: cards?.grossProfit,
+      id: 'total-products',
+      title: 'Total Products',
+      rawCurrent: inventorySummary?.totalProducts ?? null,
+      unit: 'products',
+      pastel: 'default',
+      icon: <Layers className="h-4 w-4 text-muted-foreground" />,
+      isSnapshot: true,
+      note: 'Catalog variants',
+    },
+    // 8. Total Stock Units
+    {
+      id: 'total-stock-units',
+      title: 'Total Stock Units',
+      rawCurrent: inventorySummary?.totalStockUnits ?? null,
+      unit: 'units',
+      pastel: 'sky',
+      icon: <Package className="h-4 w-4 text-sky-600 dark:text-sky-400" />,
+      isSnapshot: true,
+      note: 'On-hand inventory units',
+    },
+    // 9. Stock Value
+    {
+      id: 'stock-value',
+      title: 'Stock Value',
+      rawCurrent: inventorySummary?.stockValue !== undefined ? Number(inventorySummary.stockValue) : null,
       isCurrency: true,
       pastel: 'softgreen',
       icon: <BadgeDollarSign className="h-4 w-4 text-primary-deep dark:text-primary" />,
-      requiresFinance: true,
+      requiresCost: true,
+      isSnapshot: true,
+      note: 'Cost valuation of stock',
     },
+    // 10. Damaged Quantity
     {
-      id: 'net-profit',
-      title: 'Net Profit',
-      field: cards?.netProfit,
+      id: 'damaged-qty',
+      title: 'Damaged Quantity',
+      rawCurrent: inventorySummary?.damaged ?? null,
+      unit: 'units',
+      pastel: 'peach',
+      icon: <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />,
+      isSnapshot: true,
+      note: 'Marked defective units',
+    },
+    // 11. Damage Value
+    {
+      id: 'damage-value',
+      title: 'Damage Value',
+      rawCurrent: inventorySummary?.damageValue !== undefined ? Number(inventorySummary.damageValue) : null,
+      isCurrency: true,
+      pastel: 'peach',
+      icon: <XCircle className="h-4 w-4 text-destructive" />,
+      requiresCost: true,
+      isSnapshot: true,
+      note: 'Cost of damaged units',
+    },
+    // 12. Net Stock Value
+    {
+      id: 'net-stock-value',
+      title: 'Net Stock Value',
+      rawCurrent: inventorySummary?.netStockValue !== undefined ? Number(inventorySummary.netStockValue) : null,
       isCurrency: true,
       pastel: 'lavender',
       icon: <PieChart className="h-4 w-4 text-purple-600 dark:text-purple-400" />,
-      requiresFinance: true,
+      requiresCost: true,
+      isSnapshot: true,
+      note: 'Effective asset valuation',
     },
   ];
 
@@ -158,24 +198,41 @@ export function KpiGrid({
       }
     >
       {kpis.map((kpi) => {
-        const isRestricted = kpi.requiresFinance && !canViewFinance;
-        const cardData = kpi.field;
+        const isCostRestricted = Boolean(kpi.requiresCost && !canViewCost);
+        const isLoadingCard = kpi.isSnapshot ? inventoryLoading : loading;
+
+        let currentVal: number | string | null = null;
+        let previousVal: number | string | null = null;
+        let percentVal: number | null = null;
+        let trendVal: 'UP' | 'DOWN' | 'FLAT' | 'NONE' = 'NONE';
+
+        if (isCostRestricted) {
+          currentVal = null;
+        } else if (kpi.field) {
+          currentVal = kpi.field.current;
+          previousVal = compare ? kpi.field.previous : null;
+          percentVal = compare ? kpi.field.percent : null;
+          trendVal = compare ? (kpi.field.trend as 'UP' | 'DOWN' | 'FLAT' | 'NONE') : 'NONE';
+        } else if (kpi.rawCurrent !== undefined) {
+          currentVal = kpi.rawCurrent;
+        }
 
         return (
           <KpiCard
             key={kpi.id}
             title={kpi.title}
-            current={isRestricted ? null : cardData?.current}
-            previous={compare && !isRestricted ? cardData?.previous : null}
-            percent={compare && !isRestricted ? cardData?.percent : null}
-            trend={compare && !isRestricted ? cardData?.trend : 'NONE'}
+            current={currentVal}
+            previous={kpi.isSnapshot ? null : previousVal}
+            percent={kpi.isSnapshot ? null : percentVal}
+            trend={kpi.isSnapshot ? 'NONE' : trendVal}
             unit={kpi.unit}
             isCurrency={kpi.isCurrency}
             pastel={kpi.pastel}
             icon={kpi.icon}
-            loading={loading}
+            note={kpi.note}
+            loading={isLoadingCard}
             error={error}
-            isRestricted={isRestricted}
+            isRestricted={isCostRestricted}
             onRetry={onRetry}
           />
         );
@@ -183,4 +240,3 @@ export function KpiGrid({
     </div>
   );
 }
-

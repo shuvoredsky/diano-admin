@@ -102,6 +102,19 @@ export function resolveClientDhakaPeriod(
       start = createDhakaDate(dhaka.year, dhaka.month, dhaka.day - 29, 0, 0, 0, 0);
       break;
     }
+    case 'this_week': {
+      // Week starts Saturday (dayOfWeek 6) in Bangladesh
+      const daysSinceSaturday = (dhaka.dayOfWeek + 1) % 7;
+      start = createDhakaDate(dhaka.year, dhaka.month, dhaka.day - daysSinceSaturday, 0, 0, 0, 0);
+      end = createDhakaDate(dhaka.year, dhaka.month, dhaka.day - daysSinceSaturday + 7, 0, 0, 0, 0);
+      break;
+    }
+    case 'last_week': {
+      const daysSinceSaturday = (dhaka.dayOfWeek + 1) % 7;
+      start = createDhakaDate(dhaka.year, dhaka.month, dhaka.day - daysSinceSaturday - 7, 0, 0, 0, 0);
+      end = createDhakaDate(dhaka.year, dhaka.month, dhaka.day - daysSinceSaturday, 0, 0, 0, 0);
+      break;
+    }
     case 'this_month': {
       start = createDhakaDate(dhaka.year, dhaka.month, 1, 0, 0, 0, 0);
       end = createDhakaDate(dhaka.year, dhaka.month + 1, 1, 0, 0, 0, 0);
@@ -110,6 +123,16 @@ export function resolveClientDhakaPeriod(
     case 'last_month': {
       start = createDhakaDate(dhaka.year, dhaka.month - 1, 1, 0, 0, 0, 0);
       end = createDhakaDate(dhaka.year, dhaka.month, 1, 0, 0, 0, 0);
+      break;
+    }
+    case 'this_year': {
+      start = createDhakaDate(dhaka.year, 1, 1, 0, 0, 0, 0);
+      end = createDhakaDate(dhaka.year + 1, 1, 1, 0, 0, 0, 0);
+      break;
+    }
+    case 'last_year': {
+      start = createDhakaDate(dhaka.year - 1, 1, 1, 0, 0, 0, 0);
+      end = createDhakaDate(dhaka.year, 1, 1, 0, 0, 0, 0);
       break;
     }
     case 'custom': {
@@ -157,8 +180,12 @@ export const SUPPORTED_DASHBOARD_PERIODS: Array<{ label: string; value: Analytic
   { label: 'Yesterday', value: 'yesterday' },
   { label: 'Last 7 Days', value: 'last_7_days' },
   { label: 'Last 30 Days', value: 'last_30_days' },
+  { label: 'This Week', value: 'this_week' },
+  { label: 'Last Week', value: 'last_week' },
   { label: 'This Month', value: 'this_month' },
   { label: 'Last Month', value: 'last_month' },
+  { label: 'This Year', value: 'this_year' },
+  { label: 'Last Year', value: 'last_year' },
   { label: 'Custom Range', value: 'custom' },
 ];
 

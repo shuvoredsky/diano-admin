@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthPermissions } from '@/features/auth/hooks';
 import {
   fetchAnalyticsOverview,
+  fetchAnalyticsRevenue,
   fetchAnalyticsChart,
   fetchAnalyticsProducts,
   fetchLowStockItems,
@@ -12,6 +13,7 @@ import {
 } from '../api/analytics.api';
 import type {
   AnalyticsOverviewData,
+  AnalyticsRevenueResponse,
   AnalyticsProductsData,
   LowStockItem,
   RecentOrderItem,
@@ -24,6 +26,19 @@ export function useAnalyticsOverviewQuery(params: AnalyticsQueryParams) {
   return useQuery<AnalyticsOverviewData>({
     queryKey: ['analytics', 'overview', params],
     queryFn: () => fetchAnalyticsOverview(params),
+    staleTime: 60_000,
+    placeholderData: (previousData) => previousData,
+    enabled: canViewAnalytics,
+  });
+}
+
+export function useAnalyticsRevenueQuery(params: AnalyticsQueryParams) {
+  const { hasPermission } = useAuthPermissions();
+  const canViewAnalytics = hasPermission('analytics:view');
+
+  return useQuery<AnalyticsRevenueResponse>({
+    queryKey: ['analytics', 'revenue', params],
+    queryFn: () => fetchAnalyticsRevenue(params),
     staleTime: 60_000,
     placeholderData: (previousData) => previousData,
     enabled: canViewAnalytics,

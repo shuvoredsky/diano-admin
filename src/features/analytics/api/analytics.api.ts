@@ -3,6 +3,7 @@ import type {
   AnalyticsOverviewData,
   AnalyticsPeriod,
   AnalyticsProductsData,
+  AnalyticsRevenueResponse,
   LowStockItem,
   RecentOrderItem,
 } from '../types/analytics.types';
@@ -25,6 +26,20 @@ export async function fetchAnalyticsOverview(
 
   const response = await api.get<AnalyticsOverviewData>(
     `/admin/analytics/overview?${search.toString()}`
+  );
+  return response.data;
+}
+
+export async function fetchAnalyticsRevenue(
+  params: AnalyticsQueryParams
+): Promise<AnalyticsRevenueResponse> {
+  const search = new URLSearchParams();
+  search.set('period', params.period);
+  if (params.from) search.set('from', params.from);
+  if (params.to) search.set('to', params.to);
+
+  const response = await api.get<AnalyticsRevenueResponse>(
+    `/admin/analytics/revenue?${search.toString()}`
   );
   return response.data;
 }
