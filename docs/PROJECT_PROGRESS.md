@@ -1,7 +1,7 @@
 # DIANO Admin Dashboard — Project Progress (`PROJECT_PROGRESS.md`)
 
-**Last Updated:** 2026-11-15 (Post Phase 8A: Coupons & Flash Sales & Dashboard Alignment)
-**Current Phase:** Phase 8A Complete, Dashboard Alignment Complete; Phase 8B In Progress
+**Last Updated:** 2026-11-15 (Post Phase 8B: Reviews Moderation, Expenses Management & Reports Export)
+**Current Phase:** Phase 8B Complete; Next: Phase 9A (CMS & Storefront Pages)
 
 ---
 
@@ -20,7 +20,7 @@
 | **Phase 7A** | **PAYMENTS & FRAUD DETECTION:** Payments list/detail, masked transaction IDs, COD settlement mark-collected (`DELIVERED` order requirement), gateway event audit timeline, fraud stats, risk scoring review queue (LOW/MEDIUM/HIGH), approve/reject with required reason, customer OTP verification, fraud rules configuration/toggle with weight validation | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (27 files / 181 passed), `build` (35/35 pages + Proxy) |
 | **Phase 7B** | **SHIPPING, RETURNS, REFUNDS:** Shipping zones/methods, shipments tracking, return requests workflow, gateway refunds execution (BG-27 logged) | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (32 files / 199 passed), `build` (35/35 pages + Proxy), commit `3ae7d49` |
 | **Phase 8A** | **COUPONS & FLASH SALES:** Promotional discount vouchers CRUD (Percentage, Fixed BDT, Free Shipping, minimum purchase, max discount caps, per-user limits, usage limits, Dhaka schedule, dirty form guard, double-submit protection). Time-gated flash sale campaigns creation with dynamic variant allocation and BG-06 honest API handling. | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (34 files / 219 passed), `build` (35/35 pages + Proxy), commit `12f3ccc` |
-| **Phase 8B** | **REVIEWS, REPORTS, EXPENSES:** Reviews moderation (approve/reject/delete), Expenses CRUD with category and date range, Reports views and authenticated blob exports (orders, sales, inventory, customers, financial). | **IN PROGRESS** | — |
+| **Phase 8B** | **REVIEWS, REPORTS, EXPENSES:** Reviews moderation (approve/reject/delete with XSS protection), Expenses CRUD (exact decimal precision, Dhaka date range, category options), Reports views & authenticated blob downloads across 5 real backend domains (orders, sales, inventory, customers, financial). | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (37 files / 242 passed), `build` (36/36 pages + Proxy), commits `1c0fb15`, `49d7419`, `5b4529d` |
 | **Phase 9** | **MANAGEMENT:** Notifications inbox + DEAD queue retry, CMS (settings groups, logo/favicon, banners, pages block editor, revisions/restore), Staff + Roles + Permissions, Audit Logs (`BACKEND_GAPS.md` honest state), Settings (read-only env status) | PENDING | — |
 | **Phase 10** | **HARDENING:** Responsive pass (360–1920px), a11y audit (`axe`), Playwright E2E suite, bundle & token consistency check, final production build | PENDING | — |
 
@@ -241,3 +241,33 @@
   - `tests/unit/flash-sales/flash-sales.test.tsx`: 4 unit tests covering table rendering, campaign validation, dynamic variant rows, and permission gates.
   - Full test suite: 34 test files, 219 unit tests passing (0 failed, 0 skipped).
   - TypeScript: 0 errors; ESLint: 0 warnings, 0 errors; clean production build.
+
+---
+
+## Phase 8B Delivery Summary (Completed 2026-11-15)
+- **Reviews Moderation (`/admin/reviews`)**:
+  - Server-side paginated list with real filters (`status`: `PENDING`, `APPROVED`, `REJECTED`, `rating`: 1..5, and search) synchronized with URL search params.
+  - Review detail & moderation dialog with customer info, verified purchase badge, star rating, product details, and attached images.
+  - Strict HTML escaping / XSS protection (raw strings rendered safely without `dangerouslySetInnerHTML`).
+  - Operational actions: Approve review (recalculates product average rating), Reject review (with optional/mandatory reason), Delete review with `ConfirmDialog` and double-submit prevention.
+  - Permission-gated actions (`review:moderate`); read-only users (`review:read`) cannot see mutating buttons.
+- **Expenses Management (`/admin/expenses`)**:
+  - Full CRUD operations with server-side pagination and category + Asia/Dhaka date range filters.
+  - Categories mapped strictly to backend enum (`RENT`, `SALARIES`, `UTILITIES`, `MARKETING`, `PACKAGING`, `LOGISTICS`, `OFFICE_SUPPLIES`, `SOFTWARE_SUBSCRIPTION`, `MAINTENANCE`, `OTHER`).
+  - Create and edit modal with pure Decimal validation (positive decimal strings, zero float IEEE-754 precision loss), note length limits (500 chars), and Asia/Dhaka timestamp conversion.
+  - Form state guarded by `useDirtyFormGuard` and double-submit prevention.
+  - Deletion guarded by `ConfirmDialog` and permission-gated with `expense:manage`.
+- **Reports Views & Data Export (`/admin/reports`)**:
+  - Tabbed interface supporting all 5 real backend report export domains (`orders`, `sales`, `inventory`, `customers`, `financial`).
+  - Authenticated binary blob stream downloads (`POST /api/v1/admin/reports/:domain`) via Axios with automatic browser file download dispatch and clean object URL revocation.
+  - Robust JSON error extraction from binary blobs: parses structured backend validation errors (e.g. 400 Bad Request, 413 Payload Too Large) and surfaces real error banners without corrupt file downloads.
+  - Displays live API snapshot metrics for each domain loaded from real analytics endpoints (`/admin/analytics/*` and `/inventory/summary`).
+  - Strict financial protection: Financial statement tab and export strictly guarded behind `analytics:view_finance` (shows "Restricted Financial Access" card when unauthorized; never recomputes or masks financial figures client-side).
+  - BG-07 compliance: Informational notice detailing that standalone exports for products, payments, and expenses are integrated directly into the 5 core export streams.
+- **Verification & Tests**:
+  - `tests/unit/reviews/reviews.test.tsx`: 7 unit tests covering table rendering, delete confirmation, URL param sync, approve/reject flow, XSS HTML escaping safety, and permission gates.
+  - `tests/unit/expenses/expenses.test.tsx`: 8 unit tests covering table rendering, delete confirmation, category/date URL filtering, exact decimal validation, backend error mapping, dirty form guard, and permission gates.
+  - `tests/unit/reports/reports.test.tsx`: 8 unit tests covering tab switching, live API snapshot display, pure MoneyText figures, blob export dispatch, error-in-blob extraction, and `analytics:view_finance` access restrictions.
+  - Full test suite: 37 test files, 242 unit tests passing (0 failed, 0 skipped).
+  - TypeScript: 0 errors; ESLint: 0 warnings, 0 errors; clean production build.
+
