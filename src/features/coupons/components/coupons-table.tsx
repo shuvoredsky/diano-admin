@@ -188,3 +188,4 @@ export function CouponsTable({
     </div>
   );
 }
+

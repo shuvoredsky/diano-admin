@@ -1,7 +1,7 @@
 # DIANO Admin Dashboard — Project Progress (`PROJECT_PROGRESS.md`)
 
-**Last Updated:** 2026-11-14
-**Current Phase:** Phase 7B Complete (Shipping Zones & Methods, Courier Tracking & Status Updates, Returns & RMA Inspection Decisions, Refunds & Settlements)
+**Last Updated:** 2026-11-15 (Post Phase 8A: Coupons & Flash Sales & Dashboard Alignment)
+**Current Phase:** Phase 8A Complete, Dashboard Alignment Complete; Phase 8B In Progress
 
 ---
 
@@ -12,14 +12,15 @@
 | **Phase 1** | **INSPECT (No Feature Code):** Real workspace audit, route status, permission comparison vs `seed.ts`, env & API client audit, `ADMIN_GAP_REPORT.md`, `BACKEND_GAPS.md`, `ADMIN_PERMISSION_MAP.md` | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (5 files / 17 passed), `build` (33/33 pages + Proxy) |
 | **Phase 2** | **DESIGN SYSTEM + SHELL:** Mint/forest CSS tokens (`#DCEFE3`, `#15965F`, `#146B45`, `#F2FAF6`), light/dark themes, collapsible sidebar, top header, breadcrumbs, `PageHeader`, reusable components (`DataTable`, `FilterBar`, `DateRangePicker`, `KpiCard`, `ChartCard`, `StatusBadge`, `MoneyText`, `DateText`, `ConfirmDialog`, `PermissionGate`, etc.), `/dev/components` preview + RTL tests | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (12 files / 46 passed), `build` (34/34 pages + Proxy) |
 | **Phase 3** | **AUTH:** `/login` UI, Redux in-memory token, single-flight refresh queue, session bootstrap (`/auth/refresh` -> `/auth/me`), `proxy.ts` + client guards, permission-filtered navigation, 401/403 pages, logout/logout-all, Socket.IO connect/disconnect lifecycle + tests | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (17 files / 66 passed), `build` (34/34 pages + Proxy) |
-| **Phase 4** | **DASHBOARD:** Greeting, Dhaka date, period selector (`today`..`custom`), compare toggle, 12 KPI cards, Recharts analytics charts, top products/customers, recent orders, low-stock, abandoned summary, fraud alerts + tests | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (19 files / 88 passed), `build` (34/34 pages + Proxy) |
+| **Phase 4** | **DASHBOARD & ALIGNMENT:** Greeting, Dhaka date, 11 Dhaka reporting periods (`today`, `yesterday`, `last_7_days`, `last_30_days`, `this_week`, `last_week`, `this_month`, `last_month`, `this_year`, `last_year`, `custom`) matching `period.util.ts`, compare toggle, 12 KPI cards, `inventory:view_cost` protection, Recharts analytics charts, top products/customers, recent orders, low-stock, abandoned summary, fraud alerts + tests | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (19 files / 88 passed), `build` (34/34 pages + Proxy), commits `36b93b6` |
 | **Phase 5A** | **CATALOG (Categories & Products):** Categories tree (3-level depth, safe reassign delete, spec templates), Products list (paginated, debounced search, category/status/stock filters, BDT MoneyText, Dhaka dates), Product create/edit forms (multi-tab, live Decimal pricing calculator, dynamic specs, variants, SEO snippet preview, dirty guard, double-submit block, publish verification), Media slots (thumbnail, backview, gallery reorder, 5MB MIME validation) | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (21 files / 103 passed), `build` (34/34 pages + Proxy) |
-| **Phase 5B** | **INVENTORY:** Inventory overview/movements/receive/adjust/damage/transfer, Suppliers, Purchase Orders, Stock Audits | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (22 files / 113 passed), `build` (35/35 pages + Proxy) |
+| **Phase 5B** | **INVENTORY:** Inventory overview/movements/receive/adjust/damage/transfer, Suppliers, Purchase Orders, Stock Audits | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (22 files / 113 passed), `build` (35/35 pages + Proxy), commits `0751a5a` |
 | **Phase 6A** | **ORDERS:** Orders list (search, filters, pagination, URL sync), Order detail modal (customer details, delivery destination, line items, API totals), State machine transitions (`PENDING` -> `CONFIRMED` -> `PROCESSING` -> `PACKED` -> `SHIPPED` -> `DELIVERED` -> `RETURNED` + `CANCELLED`), `ConfirmDialog` guards, authenticated binary PDF invoice blob download, admin/customer notes, lifecycle history timeline | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (24 files / 154 passed), `build` (35/35 pages + Proxy) |
 | **Phase 6B** | **ABANDONED CHECKOUTS & CUSTOMERS:** Abandoned checkouts list/stats/recovery with consent & PII rules, Customers list/detail/notes/timeline/status | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (25 files / 165 passed), `build` (35/35 pages + Proxy) |
 | **Phase 7A** | **PAYMENTS & FRAUD DETECTION:** Payments list/detail, masked transaction IDs, COD settlement mark-collected (`DELIVERED` order requirement), gateway event audit timeline, fraud stats, risk scoring review queue (LOW/MEDIUM/HIGH), approve/reject with required reason, customer OTP verification, fraud rules configuration/toggle with weight validation | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (27 files / 181 passed), `build` (35/35 pages + Proxy) |
-| **Phase 7B** | **SHIPPING, RETURNS, REFUNDS:** Shipping zones/methods, shipments tracking, return requests workflow, gateway refunds execution | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (32 files / 199 passed), `build` (35/35 pages + Proxy) |
-| **Phase 8** | **MARKETING, REVIEWS, REPORTS:** Coupons CRUD, Flash Sales, Reviews (`BACKEND_GAPS.md` honest state), Reports (`orders`, `sales`, `inventory`, `customers`, `financial` CSV/XLSX/PDF blob downloads + 413 handling), Expenses CRUD | PENDING | — |
+| **Phase 7B** | **SHIPPING, RETURNS, REFUNDS:** Shipping zones/methods, shipments tracking, return requests workflow, gateway refunds execution (BG-27 logged) | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (32 files / 199 passed), `build` (35/35 pages + Proxy), commit `3ae7d49` |
+| **Phase 8A** | **COUPONS & FLASH SALES:** Promotional discount vouchers CRUD (Percentage, Fixed BDT, Free Shipping, minimum purchase, max discount caps, per-user limits, usage limits, Dhaka schedule, dirty form guard, double-submit protection). Time-gated flash sale campaigns creation with dynamic variant allocation and BG-06 honest API handling. | **DONE** | `typecheck` (0 errors), `lint` (0 warnings/errors), `test` (34 files / 219 passed), `build` (35/35 pages + Proxy), commit `12f3ccc` |
+| **Phase 8B** | **REVIEWS, REPORTS, EXPENSES:** Reviews moderation (approve/reject/delete), Expenses CRUD with category and date range, Reports views and authenticated blob exports (orders, sales, inventory, customers, financial). | **IN PROGRESS** | — |
 | **Phase 9** | **MANAGEMENT:** Notifications inbox + DEAD queue retry, CMS (settings groups, logo/favicon, banners, pages block editor, revisions/restore), Staff + Roles + Permissions, Audit Logs (`BACKEND_GAPS.md` honest state), Settings (read-only env status) | PENDING | — |
 | **Phase 10** | **HARDENING:** Responsive pass (360–1920px), a11y audit (`axe`), Playwright E2E suite, bundle & token consistency check, final production build | PENDING | — |
 
@@ -75,39 +76,32 @@
 
 ---
 
-## Phase 4 Delivery Summary (Completed 2026-11-12)
+## Phase 4 Delivery Summary & Dashboard Alignment (Completed 2026-11-12 & 2026-11-15)
 - **Asia/Dhaka Period & Compare Foundation**:
-  - `src/lib/utils/dhaka-period.ts`: Pure offset-based calculations for UTC+6 (`Asia/Dhaka`), resolving start/end boundaries for `today`, `yesterday`, `last_7_days`, `last_30_days`, `this_month`, `last_month`, `custom`.
+  - `src/lib/utils/dhaka-period.ts`: Pure offset-based calculations for UTC+6 (`Asia/Dhaka`), resolving start/end boundaries for all 11 reporting periods matching backend `period.util.ts`: `today`, `yesterday`, `last_7_days`, `last_30_days`, `this_week`, `last_week`, `this_month`, `last_month`, `this_year`, `last_year`, `custom` (Bangladesh week starts Saturday).
   - Financial percent delta calculation: returns `null` ("—", never `NaN` or `Infinity`) when previous value is zero, null, or undefined.
   - `useDashboardPeriod` hook syncs period and compare toggle directly with URL search params (`?period=...&compare=true/false`).
   - Interactive `DashboardPeriodSelector` with keyboard-accessible dropdown, custom date inputs, and compare toggle.
+- **12 Required Executive KPI Cards**:
+  - Total Orders, Undelivered Orders, Delivered Sales, Gross Sales, Discounts, Net Sales, Total Products, Total Stock Units, Stock Value, Damaged Qty, Damage Value, Net Stock Value.
+  - Financial cost figures (`stockValue`, `damageValue`, `netStockValue`) guarded by `inventory:view_cost`; shows "Restricted Access" badge instead of ৳0.00 when permission is missing.
 - **Data Layer & Query Hooks**:
-  - `fetchAnalyticsOverview` (`/admin/analytics/overview`): returns comparative cards (12 KPIs + deliveredSales).
+  - `fetchAnalyticsOverview` (`/admin/analytics/overview`): returns comparative cards.
+  - `fetchAnalyticsRevenue` (`/admin/analytics/revenue`): returns Gross Sales, Discounts, Net Sales, Shipping Collected.
+  - `fetchInventorySummary` (`/inventory/summary`): returns snapshot stock units and valuations.
   - `fetchAnalyticsChart` (`/admin/analytics/charts/:type`): fetches time-series and distribution charts (`sales-trend`, `order-status-pie`, `shipment-status`, `stock-by-subcategory`).
   - `fetchAnalyticsProducts` (`/admin/analytics/products`): fetches top-performing products.
   - `fetchLowStockItems` (`/inventory/low-stock`) & `fetchRecentOrders` (`/admin/orders`).
   - TanStack Query hooks with 60s staleTime, `placeholderData: (prev) => prev` to prevent UI flicker on period change, and parallel independent fetching.
-  - Isolated widget error handling: each widget handles its own loading, error, and empty state with individual Retry actions.
-  - Sensitive financial metrics (`grossProfit`, `netProfit`) gated behind `analytics:view_finance`; displays "Restricted Access" badge instead of ৳0.00 when permission is missing.
-- **UI Components & Layout**:
-  - `KpiGrid`: 12 KPI cards styled with DIANO pastel variants (`lavender`, `sky`, `peach`, `softgreen`), BDT formatting via `MoneyText`, and compare deltas.
-  - `SalesTrendChart`: Recharts AreaChart for Gross vs Net Sales with Dhaka bucket formatting and BDT tooltips.
-  - `OrderStatusChart`: Recharts Donut/Pie chart for order lifecycle breakdown with status color tokens.
-  - `ShipmentStatusChart`: Recharts horizontal BarChart for courier and delivery performance.
-  - `StockSubcategoryChart`: Recharts stacked BarChart for available vs damaged inventory units by category.
-  - `RecentOrdersCard`: Recent order transactions with status badges and relative Dhaka timestamps.
-  - `LowStockCard`: Variant-level reorder point alerts.
-  - `TopProductsCard`: Top selling products ranked by revenue and quantity.
-  - Main `/admin` route mounted with `DashboardView`.
+- **UI Components & Charts**:
+  - `KpiGrid`: 12 KPI cards styled with DIANO pastel variants, BDT formatting via `MoneyText`, and compare deltas.
+  - `SalesTrendChart`, `OrderStatusChart`, `ShipmentStatusChart`, `StockSubcategoryChart`.
+  - `RecentOrdersCard`, `LowStockCard`, `TopProductsCard`.
 - **Real-Time Synchronization**:
-  - `useDashboardRealtime` hook connects to backend Socket.IO events (`order:new`, `order:status`, `payment:status`, `stock:low`) with 1500ms debounce to invalidate analytics, order, and inventory queries.
-  - Manual "Refresh" button and "Updated: [time]" indicator.
+  - `useDashboardRealtime` hook connects to backend Socket.IO events (`order:new`, `order:status`, `payment:status`, `stock:low`) with 1500ms debounce.
 - **Verification & Tests**:
-  - `tests/unit/analytics/dhaka-period.test.ts`: 9 tests verifying Dhaka date parts, month boundaries, and zero-safe percent changes.
-  - `tests/unit/analytics/dashboard-widgets.test.tsx`: 9 tests verifying all 12 KPI cards, finance permission protection, URL param sync, isolated error retry, and list cards.
-  - Total test suite: 19 test files, 88 tests passing (0 failed, 0 skipped).
-  - TypeScript: 0 errors (`tsc --noEmit`).
-  - ESLint: 0 warnings, 0 errors.
+  - `tests/unit/analytics/dhaka-period.test.ts`: 12 tests verifying all 11 periods and Saturday week alignment.
+  - `tests/unit/analytics/dashboard-widgets.test.tsx`: 10 tests verifying 12 KPI cards, permission guards, error states.
 
 ---
 
@@ -137,8 +131,7 @@
   - `tests/unit/catalog/categories.test.tsx`: 5 tests verifying tree depth, permission protection, reassign deletion, and spec templates.
   - `tests/unit/catalog/products.test.tsx`: 10 tests verifying pure Decimal pricing math, table rendering and permission gates, publish requirement guards, and 5MB / MIME media validations.
   - Total test suite: 21 test files, 103 tests passing (0 failed, 0 skipped).
-  - TypeScript: 0 errors (`tsc --noEmit`).
-  - ESLint: 0 warnings, 0 errors.
+  - TypeScript: 0 errors (`tsc --noEmit`); ESLint: 0 warnings, 0 errors.
 
 ---
 
@@ -161,123 +154,90 @@
   - Multi-warehouse purchase order management (`GET /purchase-orders`, `POST /purchase-orders`).
   - Create PO modal with dynamic line items (variant selector, orderedQuantity, unitCost, live line totals, and grand total).
   - Purchase order detail modal with complete lifecycle `Timeline` and status tracking: `DRAFT`, `ORDERED`, `PARTIALLY_RECEIVED`, `RECEIVED`, `CANCELLED`.
-  - State machine transitions strictly enforced:
-    - `DRAFT` -> `ORDERED` or `CANCELLED`.
-    - `ORDERED` -> `PARTIALLY_RECEIVED` (via receive) or `CANCELLED`.
-    - Terminal states `RECEIVED` and `CANCELLED` permit no further transitions.
-  - Partial & full inbound receiving (`POST /purchase-orders/:id/receive`):
-    - Input clamping to remaining ordered quantities.
-    - Prevents double-submit with loading guards.
-    - Atomically updates stock on-hand, recalculates weighted average cost price, and logs `PURCHASE_RECEIPT` ledger entries on backend.
+  - State machine transitions strictly enforced.
+  - Inbound receiving (`POST /purchase-orders/:id/receive`) with row-locking atomicity (BG-22).
 - **Physical Stock Audits & Reconciliation**:
   - Start stock audit modal (`POST /inventory/audits`) with warehouse selection and notes.
-  - Stock audit list with discrepancy counts, status (`IN_PROGRESS`, `APPROVED`, `REJECTED`), and timestamps.
-  - Audit detail & count sheet modal (`GET /inventory/audits/:id`, `POST /inventory/audits/:id/counts`):
-    - Displays recorded variants, system on-hand, counted physical stock, and calculated variance.
-    - Color-coded highlights for Shortage (negative), Surplus (positive), and Balanced (zero).
-    - Approve audit action (`POST /inventory/audits/:id/approve`): reconciles discrepancies strictly through `AUDIT_ADJUSTMENT` ledger movements; never mutates stock directly.
-    - Reject audit action (`POST /inventory/audits/:id/reject`) with optional reason.
+  - Stock audit count sheet with shortage/surplus highlights.
+  - Audit approval (`POST /inventory/audits/:id/approve`) with row-locking atomicity (BG-23).
 - **Verification & Tests**:
-  - `tests/unit/inventory/inventory.test.tsx`: 10 comprehensive tests covering stock breakdown, immutable ledger guarantee, supplier validation, PO lifecycle state transitions, inbound receiving clamping and validation, physical audit variance calculations, and insufficient stock backend error handling.
+  - `tests/unit/inventory/inventory.test.tsx`: 10 comprehensive tests.
   - Vitest: 22 test files, 113 unit tests passing (0 failed, 0 skipped).
-  - TypeScript: 0 errors (`tsc --noEmit`).
-  - ESLint: 0 warnings, 0 errors.
 
 ---
 
 ## Phase 6B Delivery Summary (Completed 2026-11-13)
 - **Part 0: Shared Fixes, Rules Merge & 6A Verification**:
-  - Merged backend rules from `../diano-server/docs/AGENT_RULES.md` into `diano-admin/docs/AGENT_RULES.md` while retaining automated push policy.
-  - Created `scripts/check-bom.mjs` verifying zero BOM markers across the workspace.
-  - Verified `.env` audit: strictly `.env.example` in repo and git history.
-  - Decimal precision in `inventory-summary-cards.tsx`: `stockValue`, `damageValue`, and `netStockValue` formatted via `MoneyText` (pure decimal strings, no `Number()` coercion), guarded by `inventory:view_cost`.
-  - Renamed `vitest.config.ts` to `vitest.config.mts` and switched `__dirname` to `import.meta.dirname`, removing native configLoader warnings.
-  - Race conditions & concurrency gaps documented in `docs/BACKEND_GAPS.md` (BG-22 PO Receive concurrency, BG-23 Stock Audit sequential adjustments, BG-24 Order REFUNDED status transition is label-only).
-  - Regression tests for `ConfirmDialog` (`tests/unit/components/confirm-dialog.test.tsx`): 4 tests covering success, rejection keeping dialog open, and rich ReactNode description without Radix hydration errors.
-  - Order Detail Modal modularization: reduced `order-detail-modal.tsx` from 698 lines to 170 lines by splitting into `order-detail-cards.tsx`, `order-items-table.tsx` (with `order:view_cost` confidential masking), `order-notes-section.tsx`, `order-timeline-section.tsx`, and `order-status-actions.tsx`.
+  - Merged backend rules from `../diano-server/docs/AGENT_RULES.md` into `diano-admin/docs/AGENT_RULES.md`.
+  - Created `scripts/check-bom.mjs` verifying zero BOM markers.
+  - Decimal precision in `inventory-summary-cards.tsx`: `stockValue`, `damageValue`, and `netStockValue` guarded by `inventory:view_cost`.
+  - Order Detail Modal modularization: split into focused subcomponents.
 - **Abandoned Checkouts (`/admin/abandoned-checkouts`)**:
-  - Server-side paginated `DataTable` showing session ID, customer contact info, item count, total cart value (`MoneyText`), device icon (`MOBILE`, `DESKTOP`, `TABLET`), status badge, and last activity date.
-  - `AbandonedFilterBar` with status and date range filter inputs synchronized with URL query params via `useTableQueryParams`.
-  - `AbandonedDetailModal` inspecting customer snapshot, cart line items, total value, recovery outreach action (`POST /abandoned-checkouts/:id/recovery`), previous recovery history, and session events log.
-  - Gated recovery trigger behind `abandoned_checkout:manage`.
+  - Server-side paginated `DataTable` showing session ID, customer contact info, item count, total cart value (`MoneyText`), device icon, status badge, and last activity date.
+  - `AbandonedFilterBar` with status and date range filter inputs.
+  - `AbandonedDetailModal` with recovery outreach action (`POST /abandoned-checkouts/:id/recovery`).
 - **Customers Management (`/admin/customers`)**:
-  - Server-side paginated `DataTable` showing customer name, contact details (email/phone), orders count, total spent (`MoneyText`), loyalty points, status badge, and registration date.
-  - `CustomersFilterBar` with search input (name, email, phone) and status filter select.
-  - `CustomerDetailModal` showing personal profile, lifetime order summary (spent, orders, cancelled, returned), saved delivery addresses with type badges, communication preferences / consents, staff internal notes with submission form, and account status toggle action (Suspend / Activate) guarded by `ConfirmDialog` and `customer:manage`.
+  - Server-side paginated `DataTable` showing customer name, contact details, orders count, total spent (`MoneyText`), loyalty points, status badge.
+  - `CustomerDetailModal` showing profile, lifetime order summary, saved addresses, consents, staff notes, and account status toggle action.
 - **Verification & Tests**:
-  - `tests/unit/abandoned/abandoned.test.tsx`: 5 tests covering table rendering, detail modal sections, recovery outreach dispatch, and permission gating.
-  - `tests/unit/customers/customers.test.tsx`: 6 tests covering table rendering, detail modal sections, staff notes submission, status suspension action, and permission gating.
-  - `tests/unit/orders/orders.test.tsx`: 25 tests covering FSM transitions (RETURNED terminal), 403 fraud review hold error handling, confidential `order:view_cost` masking, and JSON error extraction from invoice blobs.
-  - Full test suite: 25 test files, 165 unit tests passing (0 failed, 0 skipped).
-  - Full production build: 35/35 routes prerendered with Turbopack exit code 0.
+  - `tests/unit/abandoned/abandoned.test.tsx`: 5 tests.
+  - `tests/unit/customers/customers.test.tsx`: 6 tests.
+  - `tests/unit/orders/orders.test.tsx`: 25 tests.
+  - Full test suite: 25 test files, 165 unit tests passing.
 
 ---
 
 ## Phase 7A Delivery Summary (Completed 2026-11-14)
 - **Payments Management (`/admin/payments`)**:
-  - Modular structure (`types`, `constants`, `api`, `hooks`, `components`): all files under ~200 lines.
-  - Paginated `DataTable` with order links, provider badge (`SSLCOMMERZ` vs `Cash on Delivery`), BDT `MoneyText` formatting, `StatusBadge`, and securely masked transaction IDs (`maskTransactionId`).
-  - `PaymentsFilterBar` synchronized with URL query params (`orderId`, `provider`, `status`).
-  - `PaymentDetailModal` composed of 3 focused sections: `PaymentSummarySection`, `PaymentEventsSection` (with signature validation and redacted payload inspector), and `PaymentActionsSection`.
-  - Cash on Delivery (COD) settlement: "Mark COD Collected" action guarded by `payment:manage` and requiring `order.status === 'DELIVERED'` per backend contract, with `ConfirmDialog` and optional courier settlement notes.
-  - Documented missing admin manual gateway re-verification endpoint as BG-25 in `docs/BACKEND_GAPS.md`.
+  - Paginated `DataTable` with order links, provider badge (`SSLCOMMERZ` vs `Cash on Delivery`), BDT `MoneyText` formatting, `StatusBadge`, and masked transaction IDs (`maskTransactionId`).
+  - Cash on Delivery (COD) settlement: "Mark COD Collected" action requiring `order.status === 'DELIVERED'`.
 - **Fraud Detection & Review Queue (`/admin/fraud-detection`)**:
-  - Real-time `FraudStatsCards` displaying high-risk flagged counts, pending review counts, medium-risk counts, and model false positive rates.
-  - Tabbed workflow switching between "Review Queue" and "Detection Rules".
-  - Review queue `DataTable` displaying risk tier badges (strictly `LOW`, `MEDIUM`, `HIGH`), numeric scores (0-100), review status badges, and triggered risk signal tags.
-  - `FraudReviewDetailModal`: inspects customer context, order facts, engine explanation, triggered risk signals breakdown with points, and immutable decision audit trail.
-  - Staff review actions guarded by `fraud:review` / `fraud:manage`:
-    - "Approve Order (Clear Hold)": resolves hold and includes optional "Mark as False Positive" model calibration flag.
-    - "Reject & Cancel Order": requires a detailed rejection reason (minimum 3 characters) and transitions order to CANCELLED.
-    - Customer OTP dispatch & verification for suspicious orders.
-  - `FraudRulesTable`: lists registered rules, active toggle switches calling atomic enable/disable mutations, and rule edit dialog with weight validation (0-100 points).
+  - Real-time `FraudStatsCards` displaying high-risk flagged counts, pending review counts, medium-risk counts, false positive rates.
+  - Review queue `DataTable` with risk tier badges (`LOW`, `MEDIUM`, `HIGH`).
+  - Staff review actions: "Approve Order (Clear Hold)", "Reject & Cancel Order", Customer OTP dispatch & verification.
+  - `FraudRulesTable` with active switches and weight calibration.
 - **Verification & Tests**:
-  - `tests/unit/payments/payments.test.tsx`: 8 tests covering masked transaction IDs, table rendering, detail modal, COD collection guards (`DELIVERED` status requirement), and `payment:manage` permission gating.
-  - `tests/unit/fraud/fraud.test.tsx`: 8 tests covering stats cards, review queue table, review approval with false positive flag, rejection reason validation, and rule weight calibration.
-  - Full test suite: 27 test files, 181 unit tests passing (0 failed, 0 skipped).
-  - TypeScript: 0 errors; ESLint: 0 warnings, 0 errors; zero `as any` / `@ts-ignore` / `eslint-disable` in `src`.
+  - `tests/unit/payments/payments.test.tsx`: 8 tests.
+  - `tests/unit/fraud/fraud.test.tsx`: 8 tests.
+  - Full test suite: 27 test files, 181 unit tests passing.
 
 ---
 
 ## Phase 7B Delivery Summary (Completed 2026-11-14)
-- **Part 0: Phase 7A Verification & Contract Audit**:
-  - Vitest Performance Benchmark: Reported baseline test suite execution time (137s across 29 test files) due to repeated JSDOM context setup. Safely tuned runner settings with pool configuration.
-  - Mark COD Collected: Audited backend enforcement in `payments.service.ts:488-492` which explicitly blocks COD collection unless `order.status === 'DELIVERED'`. Confirmed admin UI matches backend exactly.
-  - Fraud Customer OTP & Order Cancellation: Verified live backend endpoints (`POST /api/v1/admin/fraud/reviews/:id/request-otp` and `verify-otp`) in `fraud.routes.ts` and confirmed review rejection cancels order atomically in `fraud.service.ts:298-308`.
-  - Payment Redacted Payload Allowlist: Replaced direct payload rendering with strict `filterPayloadAllowlist` in `payment-events-section.tsx` preventing credentials, passwords, and sensitive keys from ever displaying.
-  - Order Date Filter Windowing: Confirmed backend `orders.repository.ts:291-294` query logic and updated `orders-filter-bar.tsx` with date inputs producing exact Asia/Dhaka ISO boundaries.
-  - Documented BG-26 in `docs/BACKEND_GAPS.md`: Backend permits order transition to `SHIPPED` without a shipment row; added non-blocking warning alert in `order-status-actions.tsx`.
 - **Shipping Settings & Logistics (`/admin/shipping`)**:
-  - Delivery Zones management (`ZonesList`, `ZoneFormModal`): Full CRUD covering all 64 Bangladesh districts, active status toggles, and deletion guards.
-  - Shipping Methods management (`MethodsTable`, `MethodFormModal`): Base delivery charge, per-kg extra weight rate, free shipping threshold (with zero-float Decimal string validations), estimated delivery days, and sort orders.
-  - Top manager (`ShippingManager`) with clean tab switcher between "Delivery Zones" and "Shipping Methods".
-- **Shipment Management & Courier Tracking**:
-  - Integrated `OrderShipmentsSection` directly into order detail modal.
-  - Create Shipment modal (`CreateShipmentModal`): Courier partner selection with Bangladeshi courier presets (Steadfast, Pathao, RedX, Paperfly, Sundarban, eCourier), tracking number, shipping method assignment, label URL, and internal notes.
-  - Update Shipment Status modal (`UpdateShipmentModal`): Allows staff with `order:ship` / `shipping:manage` to advance through all 9 real `ShipmentStatus` enum states (`PENDING`, `PICKED_UP`, `IN_TRANSIT`, `OUT_FOR_DELIVERY`, `DELIVERED`, `FAILED_ATTEMPT`, `RETURNED_TO_ORIGIN`, `RETURNING`, `RETURNED`), recording checkpoint locations and event history.
+  - Delivery Zones management covering all 64 Bangladesh districts.
+  - Shipping Methods management: base delivery charge, per-kg extra weight rate, free shipping threshold (zero-float Decimal string validations), estimated delivery days, sort orders.
+  - Shipment Management & Courier Tracking: Courier partner presets (Steadfast, Pathao, RedX, Paperfly, Sundarban, eCourier), tracking number, status update across all 9 real `ShipmentStatus` enum states.
 - **Returns & RMA (`/admin/returns`)**:
-  - Server-side paginated `ReturnsTable` with live status filter and order/customer search via `useTableQueryParams`.
-  - `ReturnDetailModal` displaying line items, quantities, customer reason, return status, and order details.
-  - Operational decisions (`ReturnActionsSection`):
-    - Approve Return: Advances requested return to approved state awaiting package arrival.
-    - Reject Return: Requires mandatory rejection explanation (minimum 3 characters) before transition.
-  - `ReturnInspectModal`: Detailed package inspection recording physical condition (`GOOD` / `DAMAGED`) and processing action (`REFUND` / `REPLACE` / `REJECT`) per line item, with optional shipping charge refund inclusion.
+  - Returns list with URL param filtering.
+  - Detail modal and operational decisions (Approve, Reject with mandatory reason).
+  - Physical inspection modal recording condition (`GOOD` / `DAMAGED`) and processing action (`REFUND` / `REPLACE` / `REJECT`) per item.
+  - Query invalidation triggers `['orders']` and `['inventory']` on return review/receive.
 - **Refunds & Settlements (`/admin/refunds`)**:
-  - Server-side paginated `RefundsTable` with order number link, customer details, BDT `MoneyText` amounts, reason, and status badge.
-  - `RefundDetailModal`: Shows complete financial breakdown, gateway reference IDs (SSLCOMMERZ refund ID / manual ref), order status, and disbursement timestamp.
-  - `CreateRefundModal`: Authorizes order refunds with positive decimal string validation and mandatory reason requirement.
+  - Refunds list and detail modal with gateway references and settlement timestamps.
+  - Issue order refund modal with positive Decimal string validation and mandatory reason.
+  - Documented BG-27 in `docs/BACKEND_GAPS.md` and added honest UI notices explaining internal ledger settlement vs simulated gateway references.
 - **Verification & Tests**:
-  - `tests/unit/shipping/shipping.test.tsx`: 6 tests covering delivery zones list, district selection, methods table, method form validation, shipment tracking display, and courier status update.
-  - `tests/unit/returns/returns.test.tsx`: 5 tests covering return requests list, detail modal, approval action, mandatory rejection reason, and item-by-item condition inspection.
-  - `tests/unit/refunds/refunds.test.tsx`: 3 tests covering refunds table, detail modal with gateway references, and order refund execution modal.
-  - Full test suite: 32 test files, 199 unit tests passing (0 failed, 0 skipped).
+  - `tests/unit/shipping/shipping.test.tsx`: 6 tests.
+  - `tests/unit/returns/returns.test.tsx`: 5 tests.
+  - `tests/unit/refunds/refunds.test.tsx`: 3 tests.
+  - Full test suite: 32 test files, 199 unit tests passing.
+
+---
+
+## Phase 8A Delivery Summary (Completed 2026-11-15)
+- **Coupons Management (`/admin/coupons`)**:
+  - Full CRUD operations with server-side pagination and URL search params (`search`, `type`, `isActive`).
+  - Supports `PERCENTAGE`, `FIXED` (৳ BDT), and `FREE_SHIPPING` types with min spend thresholds and max discount caps.
+  - Usage limits, per-user limits, first order only, allow on sale toggles, and Asia/Dhaka schedule handling.
+  - Form validation with `useDirtyFormGuard`, double-submission blocking, and backend error mapping.
+  - Delete action with `ConfirmDialog` and error alert on failure.
+- **Flash Sales Campaigns (`/admin/flash-sales`)**:
+  - Active campaigns table with campaign title, description, time-window countdown, and allocated variant badges.
+  - Launch flash sale modal with dynamic variant rows (variantId, discountPrice, stockLimit).
+  - Strict compliance with BG-06 contract: displays read-only status and informational banner explaining backend lacks update/delete endpoints.
+- **Verification & Tests**:
+  - `tests/unit/coupons/coupons.test.tsx`: 6 unit tests covering table rendering, delete dialog, URL param sync, form validation, edit prefill, and permission gates.
+  - `tests/unit/flash-sales/flash-sales.test.tsx`: 4 unit tests covering table rendering, campaign validation, dynamic variant rows, and permission gates.
+  - Full test suite: 34 test files, 219 unit tests passing (0 failed, 0 skipped).
   - TypeScript: 0 errors; ESLint: 0 warnings, 0 errors; clean production build.
-
-
-
-
-
-
-
-
-

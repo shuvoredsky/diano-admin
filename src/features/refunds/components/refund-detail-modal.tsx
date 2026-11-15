@@ -125,6 +125,9 @@ export function RefundDetailModal({ refundId, isOpen, onClose }: RefundDetailMod
                   <span className="font-mono text-muted-foreground">
                     {refund.providerRefundId || 'Manual / Internal'}
                   </span>
+                  <span className="block text-[10px] text-muted-foreground/80 italic mt-0.5">
+                    (Internal settlement record — recorded, not executed via gateway API)
+                  </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-[11px]">Created At</span>

@@ -165,6 +165,10 @@ export function CreateRefundModal({
             </Label>
           </div>
 
+          <div className="rounded-lg bg-muted/60 border border-border p-2.5 text-[11px] text-muted-foreground">
+            <strong>Settlement Notice:</strong> Refunds are recorded and settled internally in the financial ledger. Gateway refunds (including SSLCOMMERZ) are recorded as internal references and not executed via live external gateway APIs.
+          </div>
+
           <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-3">
             <Button
               type="button"

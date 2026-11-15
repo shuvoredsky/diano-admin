@@ -155,3 +155,4 @@ export function FlashSalesTable({
     </div>
   );
 }
+

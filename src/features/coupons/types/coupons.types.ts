@@ -60,3 +60,4 @@ export interface CouponFilter {
   page?: number;
   limit?: number;
 }
+

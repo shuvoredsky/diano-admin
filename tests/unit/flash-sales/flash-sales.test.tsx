@@ -150,6 +150,42 @@ describe('Phase 8A: Flash Sales Management', () => {
 
       expect(screen.getByText(/allocated product variants \(2\)/i)).toBeInTheDocument();
     });
+
+    it('displays backend conflict error message as-is when campaign creation fails', async () => {
+      mockCreateFlashSaleMutateAsync.mockRejectedValueOnce(
+        new Error('A variant is already scheduled in an overlapping flash sale')
+      );
+
+      render(
+        <AppProviders>
+          <CreateFlashSaleModal isOpen={true} onClose={vi.fn()} />
+        </AppProviders>
+      );
+
+      const titleInput = screen.getByLabelText(/campaign title/i);
+      fireEvent.change(titleInput, { target: { value: 'Winter Flash Sale' } });
+
+      const startsInput = screen.getByLabelText(/starts at \(dhaka\)/i);
+      fireEvent.change(startsInput, { target: { value: '2026-11-25' } });
+
+      const endsInput = screen.getByLabelText(/ends at \(dhaka\)/i);
+      fireEvent.change(endsInput, { target: { value: '2026-11-27' } });
+
+      const variantInput = screen.getByPlaceholderText(/variant id/i);
+      fireEvent.change(variantInput, { target: { value: 'var-oxford-xl' } });
+
+      const priceInput = screen.getByPlaceholderText(/price \(৳\)/i);
+      fireEvent.change(priceInput, { target: { value: '1200.00' } });
+
+      const submitBtn = screen.getByRole('button', { name: /launch campaign/i });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('A variant is already scheduled in an overlapping flash sale')
+        ).toBeInTheDocument();
+      });
+    });
   });
 
   describe('3. Permission Gates', () => {

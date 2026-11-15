@@ -42,3 +42,4 @@ export interface CreateFlashSaleInput {
   isActive?: boolean;
   items: CreateFlashSaleItemInput[];
 }
+

@@ -17,3 +17,4 @@ export async function createFlashSale(
   const res = await api.post<FlashSaleEntity>('/admin/flash-sales', input);
   return res.data;
 }
+

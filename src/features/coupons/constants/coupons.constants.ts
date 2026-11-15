@@ -7,3 +7,4 @@ export const COUPON_TYPE_LABELS: Record<CouponType, string> = {
   FIXED: 'Fixed Amount (৳)',
   FREE_SHIPPING: 'Free Shipping',
 };
+

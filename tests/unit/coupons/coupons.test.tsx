@@ -9,6 +9,7 @@ import {
   type CouponEntity,
 } from '@/features/coupons';
 import * as usePermissionsHook from '@/hooks/use-permissions';
+import * as dirtyGuardHook from '@/lib/crud/use-dirty-form-guard';
 import type * as CouponsQueriesModule from '@/features/coupons/hooks/use-coupons-queries';
 
 let mockSearchParams = new URLSearchParams();
@@ -241,6 +242,85 @@ describe('Phase 8A: Coupons Management', () => {
           })
         );
       });
+    });
+
+    it('displays backend error message as-is when coupon creation fails', async () => {
+      mockCreateCouponMutateAsync.mockRejectedValueOnce(
+        new Error('Coupon code SUMMER20 already exists')
+      );
+
+      render(
+        <AppProviders>
+          <CouponFormModal isOpen={true} onClose={vi.fn()} />
+        </AppProviders>
+      );
+
+      const codeInput = screen.getByLabelText(/coupon code/i);
+      fireEvent.change(codeInput, { target: { value: 'SUMMER20' } });
+
+      const submitBtn = screen.getByRole('button', { name: /create coupon/i });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(screen.getByText('Coupon code SUMMER20 already exists')).toBeInTheDocument();
+      });
+    });
+
+    it('preserves exact Decimal values and converts Dhaka schedule to ISO strings without float math', async () => {
+      render(
+        <AppProviders>
+          <CouponFormModal isOpen={true} onClose={vi.fn()} />
+        </AppProviders>
+      );
+
+      const codeInput = screen.getByLabelText(/coupon code/i);
+      fireEvent.change(codeInput, { target: { value: 'EXACT99' } });
+
+      const valueInput = screen.getByLabelText(/^value/i);
+      fireEvent.change(valueInput, { target: { value: '99.99' } });
+
+      const minPurchaseInput = screen.getByLabelText(/min order/i);
+      fireEvent.change(minPurchaseInput, { target: { value: '1499.50' } });
+
+      const maxDiscountInput = screen.getByLabelText(/max cap/i);
+      fireEvent.change(maxDiscountInput, { target: { value: '250.25' } });
+
+      const startsInput = screen.getByLabelText(/starts at \(dhaka\)/i);
+      fireEvent.change(startsInput, { target: { value: '2026-11-20' } });
+
+      const expiresInput = screen.getByLabelText(/expires at \(dhaka\)/i);
+      fireEvent.change(expiresInput, { target: { value: '2026-12-20' } });
+
+      const submitBtn = screen.getByRole('button', { name: /create coupon/i });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(mockCreateCouponMutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({
+            code: 'EXACT99',
+            value: '99.99',
+            minPurchase: '1499.50',
+            maxDiscount: '250.25',
+            startsAt: expect.stringMatching(/2026-11-20T/),
+            expiresAt: expect.stringMatching(/2026-12-20T/),
+          })
+        );
+      });
+    });
+
+    it('tracks form dirty state with dirty-form guard', () => {
+      const guardSpy = vi.spyOn(dirtyGuardHook, 'useDirtyFormGuard');
+
+      render(
+        <AppProviders>
+          <CouponFormModal isOpen={true} onClose={vi.fn()} />
+        </AppProviders>
+      );
+
+      const codeInput = screen.getByLabelText(/coupon code/i);
+      fireEvent.change(codeInput, { target: { value: 'NEWCODE' } });
+
+      expect(guardSpy).toHaveBeenCalledWith(true);
     });
   });
 
