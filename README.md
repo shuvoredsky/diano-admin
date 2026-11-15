@@ -54,5 +54,5 @@ Production-grade Next.js 16 (App Router) administration platform for the **DIANO
 - [Development Setup Guide](docs/development-setup.md)
 - [Project Folder Structure](docs/project-structure.md)
 - [Technical Decisions & Backend Discrepancies](docs/technical-decisions.md)
-- [Project Progress Tracker](PROJECT_PROGRESS.md)
+- [Project Progress Tracker](docs/PROJECT_PROGRESS.md)
 

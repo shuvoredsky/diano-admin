@@ -42,3 +42,4 @@ export interface UpdateExpenseInput {
   date?: string;
   note?: string | null;
 }
+

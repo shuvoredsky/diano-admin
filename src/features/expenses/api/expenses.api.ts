@@ -44,3 +44,4 @@ export async function updateExpense(
 export async function deleteExpense(id: string): Promise<void> {
   await api.delete(`/admin/expenses/${id}`);
 }
+

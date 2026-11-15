@@ -68,3 +68,4 @@ export function useFinancialReportSummaryQuery(period?: string, from?: string, t
     staleTime: 60_000,
   });
 }
+

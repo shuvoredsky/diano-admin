@@ -46,3 +46,4 @@ export interface UpdateReviewStatusInput {
   status: ReviewStatusType;
   reason?: string;
 }
+

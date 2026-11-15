@@ -25,3 +25,4 @@ export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   MAINTENANCE: 'Repairs & Maintenance',
   OTHER: 'Other Miscellaneous Expenses',
 };
+

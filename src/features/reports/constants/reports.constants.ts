@@ -52,3 +52,4 @@ export const SALES_GROUP_BY_OPTIONS = [
   { label: 'Weekly Summary', value: 'week' },
   { label: 'Monthly Summary', value: 'month' },
 ];
+

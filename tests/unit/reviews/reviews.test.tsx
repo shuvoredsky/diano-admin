@@ -9,7 +9,7 @@ import {
   type ReviewEntity,
 } from '@/features/reviews';
 import * as usePermissionsHook from '@/hooks/use-permissions';
-import type * as ReviewsQueriesModule from '@/features/reviews/hooks/use-reviews-queries';
+import * as ReviewsQueriesModule from '@/features/reviews/hooks/use-reviews-queries';
 
 let mockSearchParams = new URLSearchParams();
 const mockPush = vi.fn();
@@ -57,7 +57,7 @@ const mockReviewPending: ReviewEntity = {
   images: [
     {
       id: 'img-1',
-      url: 'https://cdn.diano.com/reviews/rev1.jpg',
+      url: 'https://res.cloudinary.com/diano/image/upload/rev1.jpg',
     },
   ],
 };
@@ -317,5 +317,48 @@ describe('Phase 8B: Reviews Moderation', () => {
       expect(screen.queryByRole('button', { name: /reject/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
     });
+
+    it('renders only whitelisted Cloudinary images and discards unverified external image hosts', () => {
+      setupPermissions(['review:read', 'review:moderate'], true);
+
+      const untrustedReview: ReviewEntity = {
+        ...mockReviewPending,
+        id: 'rev-untrusted-img',
+        images: [
+          { id: 'img-safe', url: 'https://res.cloudinary.com/diano/image/upload/safe.jpg' },
+          { id: 'img-malicious', url: 'https://evil-untrusted-site.com/exploit.png' },
+        ],
+      };
+
+      vi.mocked(ReviewsQueriesModule.useAdminReviewDetailQuery).mockReturnValue({
+        data: untrustedReview,
+        isLoading: false,
+        error: null,
+        isError: false,
+        isSuccess: true,
+        status: 'success',
+      } as unknown as ReturnType<typeof ReviewsQueriesModule.useAdminReviewDetailQuery>);
+
+      render(
+        <AppProviders>
+          <ReviewDetailModal
+            reviewId="rev-untrusted-img"
+            isOpen={true}
+            onClose={vi.fn()}
+          />
+        </AppProviders>
+      );
+
+      // Verifies safe Cloudinary image is rendered
+      expect(screen.getByText('Attached Photos (1)')).toBeInTheDocument();
+      const images = screen.getAllByRole('img');
+      const reviewAttachments = images.filter((img) => img.getAttribute('alt') === 'Review attachment');
+      expect(reviewAttachments).toHaveLength(1);
+      expect(reviewAttachments[0]).toHaveAttribute('src', expect.stringContaining('res.cloudinary.com'));
+
+      // Verifies malicious non-Cloudinary image was excluded
+      expect(screen.queryByRole('link', { name: /exploit\.png/i })).not.toBeInTheDocument();
+    });
   });
 });
+

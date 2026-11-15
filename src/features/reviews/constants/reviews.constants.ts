@@ -14,3 +14,4 @@ export const RATING_FILTER_OPTIONS = [
   { label: '2 Stars ★★☆☆☆', value: '2' },
   { label: '1 Star ★☆☆☆☆', value: '1' },
 ];
+

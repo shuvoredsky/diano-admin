@@ -21,6 +21,15 @@ export interface ReviewDetailModalProps {
   onClose: () => void;
 }
 
+function isAllowedCloudinaryUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' && parsed.hostname === 'res.cloudinary.com';
+  } catch {
+    return false;
+  }
+}
+
 export function ReviewDetailModal({ reviewId, isOpen, onClose }: ReviewDetailModalProps) {
   const { hasPermission } = usePermissions();
   const canModerate = hasPermission(PERMISSIONS.REVIEW_MODERATE);
@@ -176,34 +185,37 @@ export function ReviewDetailModal({ reviewId, isOpen, onClose }: ReviewDetailMod
                 </div>
               </div>
 
-              {/* Images if present */}
-              {review.images && review.images.length > 0 && (
-                <div className="space-y-1.5">
-                  <span className="text-[11px] font-semibold text-muted-foreground">
-                    Attached Photos ({review.images.length})
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {review.images.map((img) => (
-                      <a
-                        key={img.id}
-                        href={img.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block rounded-lg overflow-hidden border border-border hover:opacity-80 transition-opacity"
-                      >
-                        <Image
-                          src={img.url}
-                          alt="Review attachment"
-                          width={64}
-                          height={64}
-                          unoptimized
-                          className="h-16 w-16 object-cover"
-                        />
-                      </a>
-                    ))}
+              {/* Images if present (whitelisted to Cloudinary CDN only) */}
+              {review.images && review.images.length > 0 && (() => {
+                const safeImages = review.images.filter((img) => isAllowedCloudinaryUrl(img.url));
+                if (safeImages.length === 0) return null;
+                return (
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-semibold text-muted-foreground">
+                      Attached Photos ({safeImages.length})
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {safeImages.map((img) => (
+                        <a
+                          key={img.id}
+                          href={img.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block rounded-lg overflow-hidden border border-border hover:opacity-80 transition-opacity"
+                        >
+                          <Image
+                            src={img.url}
+                            alt="Review attachment"
+                            width={64}
+                            height={64}
+                            className="h-16 w-16 object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Moderation Details */}
               {review.moderationReason && (
