@@ -207,6 +207,47 @@ describe('Phase 9B: Staff Management', () => {
         await screen.findByText(/Privilege escalation denied/i)
       ).toBeInTheDocument();
     });
+
+    it('displays temporary password card with copy button and warning when API returns temporaryPassword', async () => {
+      mockCreateStaff.mockResolvedValueOnce({
+        id: 'user-03',
+        name: 'Auto Gen User',
+        email: 'autogen@diano.com.bd',
+        phone: null,
+        avatarUrl: null,
+        status: 'ACTIVE',
+        roles: [{ id: 'role-02', name: 'Store Manager', slug: 'store-manager' }],
+        createdAt: '2026-03-01T00:00:00.000Z',
+        updatedAt: '2026-03-01T00:00:00.000Z',
+        temporaryPassword: 'TempP@ssword123!',
+      });
+
+      render(
+        <AppProviders>
+          <StaffManager />
+        </AppProviders>
+      );
+
+      fireEvent.click(await screen.findByRole('button', { name: /invite \/ create staff/i }));
+
+      fireEvent.change(screen.getByLabelText(/Full Name \*/i), {
+        target: { value: 'Auto Gen User' },
+      });
+      fireEvent.change(screen.getByLabelText(/Email Address \*/i), {
+        target: { value: 'autogen@diano.com.bd' },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /create account/i }));
+
+      expect(await screen.findByText(/Temporary Password Generated/i)).toBeInTheDocument();
+      expect(screen.getByTestId('temporary-password-value')).toHaveTextContent('TempP@ssword123!');
+      expect(screen.getByText(/only once/i)).toBeInTheDocument();
+
+      const doneBtn = screen.getByRole('button', { name: /done/i });
+      fireEvent.click(doneBtn);
+
+      expect(screen.queryByText(/Temporary Password Generated/i)).not.toBeInTheDocument();
+    });
   });
 
   describe('3. Account Status & Safety Guards', () => {

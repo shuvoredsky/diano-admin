@@ -16,6 +16,7 @@ export interface StaffUser {
   roles: StaffRoleItem[];
   createdAt: string;
   updatedAt: string;
+  temporaryPassword?: string | null;
 }
 
 export interface CreateStaffInput {

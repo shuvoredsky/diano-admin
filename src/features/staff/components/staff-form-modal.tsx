@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useDirtyFormGuard } from '@/lib/crud/use-dirty-form-guard';
 import { useCreateStaffMutation, useUpdateStaffMutation } from '../hooks/use-staff-queries';
+import { TemporaryPasswordCard } from './temporary-password-card';
 import type { StaffUser, CreateStaffInput, UpdateStaffInput } from '../types/staff.types';
 
 export interface StaffFormModalProps {
@@ -32,6 +33,7 @@ export function StaffFormModal({
   const [roleSlug, setRoleSlug] = useState('');
   const [password, setPassword] = useState('');
   const [apiError, setApiError] = useState<string | null>(null);
+  const [tempPasswordDisplay, setTempPasswordDisplay] = useState<string | null>(null);
 
   const createMutation = useCreateStaffMutation();
   const updateMutation = useUpdateStaffMutation();
@@ -42,9 +44,15 @@ export function StaffFormModal({
       ? name !== staffToEdit?.name || phone !== (staffToEdit?.phone || '') || roleSlug !== (staffToEdit?.roles[0]?.slug || '')
       : name || email || phone || roleSlug || password
   );
-  useDirtyFormGuard(isDirty && open && !isPending);
+  useDirtyFormGuard(isDirty && open && !isPending && !tempPasswordDisplay);
 
   useEffect(() => {
+    if (!open) {
+      setTempPasswordDisplay(null);
+      setApiError(null);
+      return;
+    }
+
     if (staffToEdit) {
       setName(staffToEdit.name);
       setEmail(staffToEdit.email);
@@ -55,11 +63,11 @@ export function StaffFormModal({
       setName('');
       setEmail('');
       setPhone('');
-      setRoleSlug(rolesList[0]?.slug || 'staff');
+      setRoleSlug((prev) => prev || rolesList[0]?.slug || 'staff');
       setPassword('');
     }
     setApiError(null);
-  }, [staffToEdit, open, rolesList]);
+  }, [staffToEdit, open]);
 
   if (!open) return null;
 
@@ -100,6 +108,7 @@ export function StaffFormModal({
           roleSlug,
         };
         await updateMutation.mutateAsync({ id: staffToEdit.id, input: updatePayload });
+        onOpenChange(false);
       } else {
         const createPayload: CreateStaffInput = {
           name: name.trim(),
@@ -108,9 +117,13 @@ export function StaffFormModal({
           roleSlug,
           password: password ? password : undefined,
         };
-        await createMutation.mutateAsync(createPayload);
+        const created = await createMutation.mutateAsync(createPayload);
+        if (created?.temporaryPassword) {
+          setTempPasswordDisplay(created.temporaryPassword);
+        } else {
+          onOpenChange(false);
+        }
       }
-      onOpenChange(false);
     } catch (err: unknown) {
       let msg = 'Failed to save staff account';
       if (err && typeof err === 'object' && 'response' in err) {
@@ -157,7 +170,16 @@ export function StaffFormModal({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {tempPasswordDisplay ? (
+          <TemporaryPasswordCard
+            temporaryPassword={tempPasswordDisplay}
+            onDone={() => {
+              setTempPasswordDisplay(null);
+              onOpenChange(false);
+            }}
+          />
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="staff-name" className="text-xs">Full Name *</Label>
             <Input
@@ -257,6 +279,7 @@ export function StaffFormModal({
             </Button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );

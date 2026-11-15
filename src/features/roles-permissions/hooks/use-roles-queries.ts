@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { AUTH_QUERY_KEYS } from '@/features/auth/constants/auth.constants';
 import {
   fetchRolesList,
   getRoleById,
@@ -63,6 +64,7 @@ export function useUpdateRoleMutation() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEYS.list });
       queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEYS.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEYS.currentUser() });
     },
   });
 }
@@ -85,6 +87,7 @@ export function useAssignPermissionsMutation() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEYS.list });
       queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEYS.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEYS.currentUser() });
     },
   });
 }

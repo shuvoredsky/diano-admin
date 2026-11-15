@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { UserPlus } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,7 @@ export function StaffManager() {
   });
 
   const { data: rolesData } = useRolesListQuery();
-  const rolesList = rolesData?.map((r) => ({ slug: r.slug, name: r.name })) ?? [];
+  const rolesList = useMemo(() => rolesData?.map((r) => ({ slug: r.slug, name: r.name })) ?? [], [rolesData]);
 
   const handleCreateOpen = () => {
     setStaffToEdit(null);

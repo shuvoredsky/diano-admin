@@ -250,4 +250,31 @@ describe('Phase 9B: Roles & Permission Matrix Management', () => {
       ).toBeInTheDocument();
     });
   });
+
+  describe('4. Auth Session & Current User Invalidation on Role Save', () => {
+    it('invalidates current user auth/me query when role permissions are updated', async () => {
+      const { renderHook } = await import('@testing-library/react');
+      const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
+      const { useAssignPermissionsMutation } = await import('@/features/roles-permissions/hooks/use-roles-queries');
+      const { AUTH_QUERY_KEYS } = await import('@/features/auth/constants/auth.constants');
+
+      const queryClient = new QueryClient();
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      );
+
+      const { result } = renderHook(() => useAssignPermissionsMutation(), { wrapper });
+
+      await result.current.mutateAsync({
+        id: 'role-02',
+        input: { permissionSlugs: ['order:read', 'order:manage'] },
+      });
+
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: AUTH_QUERY_KEYS.currentUser(),
+      });
+    });
+  });
 });
