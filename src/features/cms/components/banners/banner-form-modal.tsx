@@ -9,6 +9,7 @@ import { BANNER_PLACEMENTS } from '../../constants/banners.constants';
 import type { BannerEntity, CreateBannerInput, UpdateBannerInput, BannerPlacement } from '../../types/banners.types';
 import { useCreateBannerMutation, useUpdateBannerMutation } from '../../hooks/use-banners-queries';
 import { useDirtyFormGuard } from '@/lib/crud/use-dirty-form-guard';
+import { isSafeUrl } from '@/lib/validations/link-safety';
 
 export interface BannerFormModalProps {
   open: boolean;
@@ -81,6 +82,11 @@ export function BannerFormModal({ open, onOpenChange, bannerToEdit }: BannerForm
     }
     if (!desktopImage.trim()) {
       setApiError('Desktop image URL is required');
+      return;
+    }
+
+    if (linkUrl.trim() && !isSafeUrl(linkUrl.trim())) {
+      setApiError('Destination link must be an http/https URL or internal relative path starting with /');
       return;
     }
 

@@ -24,7 +24,14 @@ export interface ReviewDetailModalProps {
 function isAllowedCloudinaryUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.protocol === 'https:' && parsed.hostname === 'res.cloudinary.com';
+    if (parsed.protocol !== 'https:' || parsed.hostname !== 'res.cloudinary.com') {
+      return false;
+    }
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    if (cloudName && !parsed.pathname.startsWith(`/${cloudName}/`)) {
+      return false;
+    }
+    return true;
   } catch {
     return false;
   }

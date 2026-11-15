@@ -10,6 +10,7 @@ import { PAGE_TYPES, SYSTEM_PAGE_SLUGS } from '../../constants/pages.constants';
 import type { PageEntity, CreatePageInput, UpdatePageInput, PageType, PageStatus } from '../../types/pages.types';
 import { useCreatePageMutation, useUpdatePageMutation } from '../../hooks/use-pages-queries';
 import { useDirtyFormGuard } from '@/lib/crud/use-dirty-form-guard';
+import { sanitizeHtml } from '@/lib/validations/html-sanitizer';
 
 export interface PageFormModalProps {
   open: boolean;
@@ -94,8 +95,9 @@ export function PageFormModal({ open, onOpenChange, pageToEdit }: PageFormModalP
       return;
     }
 
-    const contentBlocks = htmlContent.trim()
-      ? [{ type: 'richText' as const, html: htmlContent.trim() }]
+    const cleanHtml = sanitizeHtml(htmlContent.trim());
+    const contentBlocks = cleanHtml
+      ? [{ type: 'richText' as const, html: cleanHtml }]
       : [];
 
     try {

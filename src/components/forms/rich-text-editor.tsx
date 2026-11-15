@@ -12,6 +12,7 @@ import {
   Eye,
   Edit3,
 } from 'lucide-react';
+import { sanitizeHtml } from '@/lib/validations/html-sanitizer';
 
 export interface RichTextEditorProps {
   value: string;
@@ -152,7 +153,7 @@ export function RichTextEditor({
           className="p-4 text-sm text-foreground prose dark:prose-invert max-w-none bg-background overflow-auto"
         >
           {value ? (
-            <div className="whitespace-pre-wrap">{value}</div>
+            <div className="whitespace-pre-wrap">{sanitizeHtml(value)}</div>
           ) : (
             <span className="text-xs text-muted-foreground italic">Nothing to preview yet.</span>
           )}

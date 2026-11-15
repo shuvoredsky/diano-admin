@@ -285,9 +285,43 @@ describe('Phase 9A: Pages & Revisions Management', () => {
       const previewTab = screen.getByRole('button', { name: /preview/i });
       fireEvent.click(previewTab);
 
-      // Verifies <script> tag is escaped as text content, not executed
-      expect(screen.getByText(/<script>alert\("xss"\)<\/script>/i)).toBeInTheDocument();
+      // Verifies <script> tag is completely stripped by sanitizer, safe text remains, no script execution
+      expect(screen.getByText(/Privacy policy draft content/i)).toBeInTheDocument();
+      expect(screen.queryByText(/<script>/i)).not.toBeInTheDocument();
       expect((window as unknown as { __xss?: boolean }).__xss).toBeUndefined();
+    });
+
+    it('sanitizes malicious HTML payloads (<script>, onerror, javascript: href) upon submit', async () => {
+      render(
+        <AppProviders>
+          <PageFormModal open={true} onOpenChange={vi.fn()} />
+        </AppProviders>
+      );
+
+      fireEvent.change(screen.getByLabelText(/Page Title \*/i), {
+        target: { value: 'Security Policy' },
+      });
+      fireEvent.change(screen.getByLabelText(/URL Slug \*/i), {
+        target: { value: 'security-policy' },
+      });
+      const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+      expect(textarea).not.toBeNull();
+      fireEvent.change(textarea, {
+        target: {
+          value: '<p>Safe Text</p><script>alert("xss")</script><img src="x" onerror="alert(1)" /><a href="javascript:alert(2)">Click</a>',
+        },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /create page/i }));
+
+      await waitFor(() => {
+        expect(mockCreatePageMutateAsync).toHaveBeenCalled();
+      });
+      const callArg = mockCreatePageMutateAsync.mock.calls[0]?.[0];
+      const submittedHtml = (callArg?.content?.[0] as { html?: string })?.html ?? '';
+      expect(submittedHtml).not.toContain('<script>');
+      expect(submittedHtml).not.toContain('onerror=');
+      expect(submittedHtml).not.toContain('javascript:');
     });
   });
 

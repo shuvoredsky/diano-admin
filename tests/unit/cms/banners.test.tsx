@@ -279,6 +279,31 @@ describe('Phase 9A: Banners Management', () => {
         await screen.findByText(/A banner with this title already exists in the selected placement slot/i)
       ).toBeInTheDocument();
     });
+
+    it('rejects unsafe destination link schemes (javascript:, data:, protocol-relative //)', async () => {
+      render(
+        <AppProviders>
+          <BannerFormModal open={true} onOpenChange={vi.fn()} />
+        </AppProviders>
+      );
+
+      fireEvent.change(screen.getByLabelText(/Banner Title \*/i), {
+        target: { value: 'Test Link Safety' },
+      });
+      fireEvent.change(screen.getByLabelText(/Desktop Image URL \*/i), {
+        target: { value: 'https://res.cloudinary.com/diano/image/upload/safe.jpg' },
+      });
+      fireEvent.change(screen.getByLabelText(/Destination Link/i), {
+        target: { value: 'javascript:alert("pwned")' },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /create banner/i }));
+
+      expect(
+        await screen.findByText(/Destination link must be an http\/https URL or internal relative path/i)
+      ).toBeInTheDocument();
+      expect(mockCreateBannerMutateAsync).not.toHaveBeenCalled();
+    });
   });
 
   describe('3. Permission Gates', () => {

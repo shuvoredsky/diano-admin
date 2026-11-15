@@ -171,6 +171,34 @@ describe('Dashboard Widgets, Permissions, and Isolated Failures', () => {
       expect(screen.queryByText('৳ 60,000.00')).not.toBeInTheDocument();
     });
 
+    it('restricts financial cost metrics and valuation figures without analytics:view_finance / inventory:view_cost', () => {
+      vi.spyOn(authPermissionsHook, 'useAuthPermissions').mockReturnValue({
+        user: undefined,
+        permissions: ['analytics:view'],
+        roles: ['staff'],
+        isSuperAdmin: false,
+        isLoading: false,
+        isAuthenticated: true,
+        hasPermission: (perm) => perm !== 'inventory:view_cost' && perm !== 'analytics:view_finance',
+        hasAnyPermission: () => false,
+        hasAllPermissions: () => false,
+      });
+
+      render(
+        <AppProviders>
+          <KpiGrid
+            data={mockOverviewData}
+            revenueData={mockRevenueData}
+            inventorySummary={mockInventorySummary}
+            compare={true}
+          />
+        </AppProviders>
+      );
+
+      expect(screen.getAllByText('Restricted Access').length).toBe(3);
+      expect(screen.queryByText('৳ 1,500,000.00')).not.toBeInTheDocument();
+    });
+
     it('renders error state on KPI grid without crashing and allows retry', () => {
       const mockRetry = vi.fn();
 
