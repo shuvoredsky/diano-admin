@@ -189,6 +189,9 @@ export const SUPPORTED_DASHBOARD_PERIODS: Array<{ label: string; value: Analytic
   { label: 'Custom Range', value: 'custom' },
 ];
 
+export const DHAKA_PERIOD_OPTIONS = SUPPORTED_DASHBOARD_PERIODS;
+export type DhakaPeriodOption = AnalyticsPeriod;
+
 /**
  * Calculates percentage delta between current and previous period.
  * Strict financial rule: If previous is zero, null, or undefined, returns null ("—", never NaN/Infinity).

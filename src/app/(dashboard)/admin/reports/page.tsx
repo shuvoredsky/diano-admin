@@ -1,17 +1,11 @@
 import type { Metadata } from 'next';
-
-import { RoutePlaceholder } from '@/components/shared/route-placeholder';
+import { ReportsManager } from '@/features/reports';
 
 export const metadata: Metadata = {
-  title: 'Reports',
+  title: 'Reports & Data Export | DIANO Admin',
+  description: 'Download business intelligence and operational reports.',
 };
 
-export default function AdminRoutePage() {
-  return (
-    <RoutePlaceholder
-      title="Reports"
-      route="/admin/reports"
-      description="Financial exports, expense tracking, and tax reporting foundation."
-    />
-  );
+export default function ReportsPage() {
+  return <ReportsManager />;
 }
