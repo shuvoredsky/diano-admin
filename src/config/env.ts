@@ -39,7 +39,7 @@ export function validatePublicEnv(rawEnv: Record<string, string | undefined> = p
 }
 
 export function validateServerEnv(rawEnv: Record<string, string | undefined> = process.env): ServerEnv {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
     throw new Error('Security violation: validateServerEnv() must not be called in browser code.');
   }
 

@@ -1,5 +1,48 @@
 import type { NextConfig } from 'next';
 
+function getConnectSources(): string {
+  const sources = [
+    "'self'",
+    'https://res.cloudinary.com',
+    'http://localhost:*',
+    'ws://localhost:*',
+    'wss://localhost:*',
+  ];
+
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    try {
+      sources.push(new URL(process.env.NEXT_PUBLIC_API_URL).origin);
+    } catch {
+      // ignore invalid URLs in build/test
+    }
+  }
+
+  if (process.env.NEXT_PUBLIC_SOCKET_URL) {
+    try {
+      sources.push(new URL(process.env.NEXT_PUBLIC_SOCKET_URL).origin);
+    } catch {
+      // ignore invalid URLs in build/test
+    }
+  }
+
+  return Array.from(new Set(sources)).join(' ');
+}
+
+const contentSecurityPolicy = `
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' 'unsafe-eval';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob: https://res.cloudinary.com;
+  font-src 'self' data:;
+  connect-src ${getConnectSources()};
+  object-src 'none';
+  base-uri 'self';
+  form-action 'self';
+  frame-ancestors 'none';
+`
+  .replace(/\s{2,}/g, ' ')
+  .trim();
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
@@ -17,6 +60,10 @@ const nextConfig: NextConfig = {
       {
         source: '/(.*)',
         headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: contentSecurityPolicy,
+          },
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
@@ -40,4 +87,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-

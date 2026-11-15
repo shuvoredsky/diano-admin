@@ -1,29 +1,106 @@
+import DOMPurify from 'isomorphic-dompurify';
+
 /**
- * HTML Sanitizer for Rich Text & User Content
- * Defense-in-depth sanitization:
- * - Strips <script> and dangerous executable tags (<script>, <iframe>, <object>, <embed>, <applet>)
- * - Strips inline event handlers (onload, onerror, onclick, onmouseover, etc.)
- * - Strips javascript: and data: pseudo-protocol URIs
+ * Strict HTML Sanitizer powered by DOMPurify
+ *
+ * Rules & Allowlist:
+ * - Allowed Tags: p, br, strong, em, b, i, u, s, strike, h1-h6, ul, ol, li, blockquote, code, pre, hr, a, img, table, thead, tbody, tr, th, td, span, div.
+ * - Forbid Tags: script, style, iframe, object, embed, form, input, button, textarea, select, applet, meta, link, base, svg, math.
+ * - Forbid Attributes: all inline event handlers (on*), style attribute.
+ * - Allowed Protocols: http, https, mailto, tel, or internal relative paths (/ not followed by / or \).
+ * - Safety Hook: automatically sets rel="noopener noreferrer" whenever target="_blank" is used on <a> tags.
  */
+
+export const SANITIZER_ALLOWED_TAGS = [
+  'p',
+  'br',
+  'strong',
+  'em',
+  'b',
+  'i',
+  'u',
+  's',
+  'strike',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'ul',
+  'ol',
+  'li',
+  'blockquote',
+  'code',
+  'pre',
+  'hr',
+  'a',
+  'img',
+  'table',
+  'thead',
+  'tbody',
+  'tr',
+  'th',
+  'td',
+  'span',
+  'div',
+];
+
+export const SANITIZER_ALLOWED_ATTR = [
+  'href',
+  'src',
+  'alt',
+  'title',
+  'class',
+  'target',
+  'rel',
+  'width',
+  'height',
+  'align',
+];
+
+// Allows safe URL protocols or relative paths; also permits standard target keywords (_blank, _self, etc.)
+export const SAFE_URI_REGEXP =
+  /^(?:(?:https?|mailto|tel):|\/(?!\/|\\)|[#?]|_blank|_self|_parent|_top)/i;
+
+// Register security hook on DOMPurify
+if (typeof DOMPurify?.addHook === 'function') {
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    if (node.tagName?.toLowerCase() === 'a') {
+      const target = node.getAttribute('target');
+      if (target === '_blank') {
+        node.setAttribute('rel', 'noopener noreferrer');
+      }
+    }
+  });
+}
 
 export function sanitizeHtml(rawHtml?: string | null): string {
   if (!rawHtml) return '';
 
-  let sanitized = rawHtml;
-
-  // 1. Strip script tags and content
-  sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-
-  // 2. Strip dangerous executable containers (iframe, object, embed, applet, meta, link, base)
-  sanitized = sanitized.replace(/<\/?(?:iframe|object|embed|applet|meta|link|base)\b[^>]*>/gi, '');
-
-  // 3. Strip inline event handlers (e.g. onerror=..., onclick=..., onload=...)
-  sanitized = sanitized.replace(/\s+on[a-z0-9_-]+\s*=\s*(?:'[^']*'|"[^"]*"|[^\s>]+)/gi, '');
-
-  // 4. Strip dangerous pseudo-protocols in attributes (href="javascript:...", src="javascript:...", data:...)
-  sanitized = sanitized.replace(/(href|src|action)\s*=\s*(?:'javascript:[^']*'|"javascript:[^"]*"|javascript:[^\s>]+)/gi, '$1="#"');
-  sanitized = sanitized.replace(/(href|src|action)\s*=\s*(?:'data:text\/html[^']*'|"data:text\/html[^"]*"|data:text\/html[^\s>]+)/gi, '$1="#"');
-  sanitized = sanitized.replace(/(href|src|action)\s*=\s*(?:'vbscript:[^']*'|"vbscript:[^"]*"|vbscript:[^\s>]+)/gi, '$1="#"');
-
-  return sanitized;
+  return DOMPurify.sanitize(rawHtml, {
+    ALLOWED_TAGS: SANITIZER_ALLOWED_TAGS,
+    ALLOWED_ATTR: SANITIZER_ALLOWED_ATTR,
+    ADD_ATTR: ['target', 'rel'],
+    ALLOWED_URI_REGEXP: SAFE_URI_REGEXP,
+    FORBID_TAGS: [
+      'script',
+      'style',
+      'iframe',
+      'object',
+      'embed',
+      'form',
+      'input',
+      'button',
+      'textarea',
+      'select',
+      'applet',
+      'meta',
+      'link',
+      'base',
+      'svg',
+      'math',
+    ],
+    FORBID_ATTR: ['style'],
+  });
 }

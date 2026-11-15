@@ -67,6 +67,51 @@ async function handleAuthProxy(
     );
   }
 
+  // CSRF Defense: For mutating requests (POST, PATCH, DELETE), enforce same-origin verification
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    const secFetchSite = request.headers.get('sec-fetch-site');
+    if (secFetchSite === 'cross-site') {
+      return NextResponse.json(
+        {
+          success: false,
+          statusCode: 403,
+          message: 'Cross-site request blocked by CSRF protection',
+          timestamp: new Date().toISOString(),
+        },
+        { status: 403 },
+      );
+    }
+
+    const origin = request.headers.get('origin');
+    if (origin) {
+      try {
+        const originHost = new URL(origin).host;
+        const requestHost = request.headers.get('host') || request.nextUrl.host;
+        if (originHost !== requestHost) {
+          return NextResponse.json(
+            {
+              success: false,
+              statusCode: 403,
+              message: 'Cross-origin request blocked by CSRF protection',
+              timestamp: new Date().toISOString(),
+            },
+            { status: 403 },
+          );
+        }
+      } catch {
+        return NextResponse.json(
+          {
+            success: false,
+            statusCode: 403,
+            message: 'Malformed request origin header',
+            timestamp: new Date().toISOString(),
+          },
+          { status: 403 },
+        );
+      }
+    }
+  }
+
   const serverEnv = getServerEnv();
   const upstreamUrl = `${serverEnv.BACKEND_API_URL.replace(/\/$/, '')}/api/v1/auth/${actionPath}`;
   const isProd = serverEnv.NODE_ENV === 'production';

@@ -153,7 +153,10 @@ export function RichTextEditor({
           className="p-4 text-sm text-foreground prose dark:prose-invert max-w-none bg-background overflow-auto"
         >
           {value ? (
-            <div className="whitespace-pre-wrap">{sanitizeHtml(value)}</div>
+            <div
+              className="whitespace-pre-wrap"
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(value) }}
+            />
           ) : (
             <span className="text-xs text-muted-foreground italic">Nothing to preview yet.</span>
           )}
