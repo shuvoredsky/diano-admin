@@ -37,7 +37,12 @@ export function MobileNav() {
       />
 
       {/* Drawer */}
-      <div className="fixed inset-y-0 left-0 flex w-72 flex-col bg-card shadow-2xl transition-transform duration-300">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mobile Navigation"
+        className="fixed inset-y-0 left-0 flex w-72 flex-col bg-card shadow-2xl transition-transform duration-300"
+      >
         <div className="flex h-16 items-center justify-between border-b border-border px-4">
           <Link href="/admin" className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-black text-lg">
@@ -51,7 +56,7 @@ export function MobileNav() {
           <button
             type="button"
             onClick={() => dispatch(setMobileSidebarOpen(false))}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-mint/40 hover:text-foreground"
+            className="flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-lg text-muted-foreground hover:bg-mint/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Close navigation"
           >
             <X className="h-5 w-5" />

@@ -50,7 +50,7 @@ export function Topbar() {
         <button
           type="button"
           onClick={() => dispatch(setMobileSidebarOpen(true))}
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-mint/40 hover:text-foreground md:hidden"
+          className="flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-mint/40 hover:text-foreground md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Open mobile menu"
         >
           <Menu className="h-5 w-5" />
@@ -84,7 +84,7 @@ export function Topbar() {
               setIsThemeOpen(!isThemeOpen);
               setIsProfileOpen(false);
             }}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-mint/40 hover:text-foreground transition-colors"
+            className="flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-mint/40 hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             title="Toggle theme"
             aria-label="Toggle theme"
           >
@@ -105,7 +105,7 @@ export function Topbar() {
                   setTheme('light');
                   setIsThemeOpen(false);
                 }}
-                className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 min-h-[36px] text-xs font-medium transition-colors ${
                   theme === 'light' ? 'bg-mint text-primary-deep font-semibold' : 'text-foreground hover:bg-muted'
                 }`}
               >
@@ -117,7 +117,7 @@ export function Topbar() {
                   setTheme('dark');
                   setIsThemeOpen(false);
                 }}
-                className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 min-h-[36px] text-xs font-medium transition-colors ${
                   theme === 'dark' ? 'bg-mint text-primary-deep font-semibold' : 'text-foreground hover:bg-muted'
                 }`}
               >
@@ -129,7 +129,7 @@ export function Topbar() {
                   setTheme('system');
                   setIsThemeOpen(false);
                 }}
-                className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 min-h-[36px] text-xs font-medium transition-colors ${
                   theme === 'system' ? 'bg-mint text-primary-deep font-semibold' : 'text-foreground hover:bg-muted'
                 }`}
               >
@@ -147,7 +147,7 @@ export function Topbar() {
               setIsProfileOpen(!isProfileOpen);
               setIsThemeOpen(false);
             }}
-            className="flex items-center gap-2 rounded-lg border border-border p-1.5 text-xs hover:bg-mint/30 transition-colors"
+            className="flex items-center gap-2 rounded-lg border border-border p-2 min-h-[40px] text-xs hover:bg-mint/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-expanded={isProfileOpen}
             aria-label="User profile menu"
           >

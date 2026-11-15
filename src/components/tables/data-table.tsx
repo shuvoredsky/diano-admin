@@ -234,6 +234,7 @@ export function DataTable<T extends Record<string, unknown>>({
             <select
               value={limit}
               onChange={e => handleLimitClick(Number(e.target.value))}
+              aria-label="Select rows per page"
               className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-ring"
             >
               {[10, 25, 50, 100].map(s => (
@@ -246,15 +247,16 @@ export function DataTable<T extends Record<string, unknown>>({
         </div>
 
         {/* Page navigation */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-wrap">
           <Button
             type="button"
             variant="outline"
             size="icon"
             onClick={() => handlePageClick(1)}
             disabled={page <= 1 || isLoading}
-            className="h-8 w-8 rounded-lg"
+            className="h-9 w-9 sm:h-8 sm:w-8 min-h-[36px] min-w-[36px] rounded-lg"
             title="First page"
+            aria-label="First page"
           >
             <ChevronsLeft className="h-4 w-4" />
           </Button>
@@ -264,13 +266,14 @@ export function DataTable<T extends Record<string, unknown>>({
             size="icon"
             onClick={() => handlePageClick(page - 1)}
             disabled={page <= 1 || isLoading}
-            className="h-8 w-8 rounded-lg"
+            className="h-9 w-9 sm:h-8 sm:w-8 min-h-[36px] min-w-[36px] rounded-lg"
             title="Previous page"
+            aria-label="Previous page"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
 
-          <span className="px-2 font-medium text-foreground">
+          <span className="px-2 font-medium text-foreground text-xs">
             Page {page} of {totalPages}
           </span>
 
@@ -280,8 +283,9 @@ export function DataTable<T extends Record<string, unknown>>({
             size="icon"
             onClick={() => handlePageClick(page + 1)}
             disabled={page >= totalPages || isLoading}
-            className="h-8 w-8 rounded-lg"
+            className="h-9 w-9 sm:h-8 sm:w-8 min-h-[36px] min-w-[36px] rounded-lg"
             title="Next page"
+            aria-label="Next page"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -291,8 +295,9 @@ export function DataTable<T extends Record<string, unknown>>({
             size="icon"
             onClick={() => handlePageClick(totalPages)}
             disabled={page >= totalPages || isLoading}
-            className="h-8 w-8 rounded-lg"
+            className="h-9 w-9 sm:h-8 sm:w-8 min-h-[36px] min-w-[36px] rounded-lg"
             title="Last page"
+            aria-label="Last page"
           >
             <ChevronsRight className="h-4 w-4" />
           </Button>

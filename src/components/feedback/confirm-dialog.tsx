@@ -34,7 +34,10 @@ export function ConfirmDialog({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs transition-opacity" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-2xl transition-all">
+        <Dialog.Content
+          aria-modal="true"
+          className="fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-y-auto -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-2xl transition-all focus-visible:outline-hidden"
+        >
           <div className="flex items-start gap-3.5">
             <div
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
@@ -60,17 +63,23 @@ export function ConfirmDialog({
             <Dialog.Close asChild>
               <button
                 type="button"
-                className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                className="flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label="Close"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </button>
             </Dialog.Close>
           </div>
 
-          <div className="mt-6 flex items-center justify-end gap-2.5">
+          <div className="mt-6 flex flex-wrap items-center justify-end gap-2.5">
             <Dialog.Close asChild>
-              <Button type="button" variant="outline" size="sm" disabled={isLoading} className="rounded-lg">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isLoading}
+                className="rounded-lg min-h-[40px] px-4"
+              >
                 {cancelLabel}
               </Button>
             </Dialog.Close>
@@ -87,7 +96,7 @@ export function ConfirmDialog({
                   // Keep dialog open if onConfirm throws validation/network error
                 }
               }}
-              className="rounded-lg"
+              className="rounded-lg min-h-[40px] px-4"
             >
               {isLoading ? 'Processing...' : confirmLabel}
             </Button>

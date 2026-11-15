@@ -77,8 +77,8 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-mint/40 hover:text-foreground transition-colors cursor-pointer"
-        aria-label="Open notifications menu"
+        className="relative flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-mint/40 hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
         aria-expanded={isOpen}
       >
         <Bell className="h-4 w-4" />
@@ -93,7 +93,11 @@ export function NotificationBell() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border border-border bg-card shadow-xl z-50 overflow-hidden animate-in fade-in-50 zoom-in-95 duration-100">
+        <div
+          role="region"
+          aria-label="Notifications panel"
+          className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border border-border bg-card shadow-xl z-50 overflow-hidden animate-in fade-in-50 zoom-in-95 duration-100"
+        >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/30">
             <div className="flex items-center gap-2">
