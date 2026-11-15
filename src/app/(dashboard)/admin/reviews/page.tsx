@@ -1,17 +1,11 @@
 import type { Metadata } from 'next';
-
-import { RoutePlaceholder } from '@/components/shared/route-placeholder';
+import { ReviewsManager } from '@/features/reviews';
 
 export const metadata: Metadata = {
-  title: 'Reviews',
+  title: 'Reviews Moderation | DIANO Admin',
+  description: 'Moderate customer product reviews and ratings.',
 };
 
-export default function AdminRoutePage() {
-  return (
-    <RoutePlaceholder
-      title="Reviews"
-      route="/admin/reviews"
-      description="Customer product reviews moderation and rating analytics foundation."
-    />
-  );
+export default function ReviewsPage() {
+  return <ReviewsManager />;
 }
