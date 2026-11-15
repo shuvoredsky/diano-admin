@@ -1,17 +1,11 @@
 import type { Metadata } from 'next';
-
-import { RoutePlaceholder } from '@/components/shared/route-placeholder';
+import { FlashSalesManager } from '@/features/flash-sales';
 
 export const metadata: Metadata = {
   title: 'Flash Sales',
+  description: 'Manage time-limited flash sales campaigns and product discounts.',
 };
 
-export default function AdminRoutePage() {
-  return (
-    <RoutePlaceholder
-      title="Flash Sales"
-      route="/admin/flash-sales"
-      description="Time-bound promotional campaigns and scheduled pricing foundation."
-    />
-  );
+export default function AdminFlashSalesPage() {
+  return <FlashSalesManager />;
 }

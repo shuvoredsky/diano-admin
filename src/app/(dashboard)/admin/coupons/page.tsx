@@ -1,17 +1,11 @@
 import type { Metadata } from 'next';
-
-import { RoutePlaceholder } from '@/components/shared/route-placeholder';
+import { CouponsManager } from '@/features/coupons';
 
 export const metadata: Metadata = {
-  title: 'Coupons',
+  title: 'Coupons & Vouchers',
+  description: 'Manage store promotional discount vouchers and coupon codes.',
 };
 
-export default function AdminRoutePage() {
-  return (
-    <RoutePlaceholder
-      title="Coupons"
-      route="/admin/coupons"
-      description="Promotional discount codes and usage constraint management foundation."
-    />
-  );
+export default function AdminCouponsPage() {
+  return <CouponsManager />;
 }
