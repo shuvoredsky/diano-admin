@@ -128,7 +128,7 @@ describe('Phase 9B: Notification Center & Delivery Logs', () => {
         </AppProviders>
       );
 
-      const bellBtn = screen.getByRole('button', { name: /open notifications menu/i });
+      const bellBtn = screen.getByRole('button', { name: /notifications/i });
       fireEvent.click(bellBtn);
 
       expect(await screen.findByText('New High-Value Order #ORD-991')).toBeInTheDocument();
@@ -144,7 +144,7 @@ describe('Phase 9B: Notification Center & Delivery Logs', () => {
         </AppProviders>
       );
 
-      fireEvent.click(screen.getByRole('button', { name: /open notifications menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /notifications/i }));
 
       const markReadBtn = await screen.findByTitle('Mark as read');
       fireEvent.click(markReadBtn);
@@ -161,7 +161,7 @@ describe('Phase 9B: Notification Center & Delivery Logs', () => {
         </AppProviders>
       );
 
-      fireEvent.click(screen.getByRole('button', { name: /open notifications menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /notifications/i }));
 
       const markAllBtn = await screen.findByRole('button', { name: /mark all read/i });
       fireEvent.click(markAllBtn);
