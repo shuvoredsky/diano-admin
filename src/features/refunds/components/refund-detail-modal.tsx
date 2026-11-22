@@ -121,12 +121,14 @@ export function RefundDetailModal({ refundId, isOpen, onClose }: RefundDetailMod
                   </span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block text-[11px]">Gateway Refund ID</span>
+                  <span className="text-muted-foreground block text-[11px]">Gateway Refund ID / Reference</span>
                   <span className="font-mono text-muted-foreground">
                     {refund.providerRefundId || 'Manual / Internal'}
                   </span>
                   <span className="block text-[10px] text-muted-foreground/80 italic mt-0.5">
-                    (Internal settlement record — recorded, not executed via gateway API)
+                    {refund.providerRefundId?.startsWith('SSL-REF-') || refund.providerRefundId?.startsWith('REF-')
+                      ? '(SSLCOMMERZ gateway transaction reference)'
+                      : '(Manual ledger reference / offline settlement)'}
                   </span>
                 </div>
                 <div>

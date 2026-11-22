@@ -30,6 +30,8 @@ const STATUS_VARIANT_MAP: Record<string, BadgeVariant> = {
   MEDIUM: 'warning',
   WARNING: 'warning',
   PARTIALLY_REFUNDED: 'warning',
+  REFUND_PENDING: 'warning',
+  PENDING_MANUAL: 'warning',
   INSPECTED: 'warning',
 
   // Danger

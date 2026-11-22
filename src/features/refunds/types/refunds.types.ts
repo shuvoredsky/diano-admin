@@ -49,6 +49,7 @@ export interface ExecuteOrderRefundInput {
   paymentId?: string;
   refundShipping?: boolean;
   manualReference?: string;
+  status?: 'PENDING' | 'COMPLETED';
 }
 
 export interface ExecuteReturnRefundInput {

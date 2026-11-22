@@ -9,6 +9,7 @@ import {
   CreateRefundModal,
   type RefundEntity,
 } from '@/features/refunds';
+import { StatusBadge } from '@/components/shared/status-badge';
 import * as usePermissionsHook from '@/hooks/use-permissions';
 import type * as RefundsQueriesModule from '@/features/refunds/hooks/use-refunds-queries';
 
@@ -100,7 +101,7 @@ function setupPermissions(permissions: string[], isSuperAdmin = false) {
   });
 }
 
-describe('Phase 7B: Refunds & Settlements', () => {
+describe('Phase 7B / BG-27: Refunds & Settlements', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSearchParams = new URLSearchParams();
@@ -143,11 +144,12 @@ describe('Phase 7B: Refunds & Settlements', () => {
       expect(screen.getByText('SSLCOMMERZ')).toBeInTheDocument();
       expect(screen.getByText('SSL-REF-776655')).toBeInTheDocument();
       expect(screen.getByText('#ORD-202611-0001')).toBeInTheDocument();
+      expect(screen.getByText(/SSLCOMMERZ gateway transaction reference/i)).toBeInTheDocument();
     });
   });
 
   describe('3. Issue Order Refund Modal', () => {
-    it('validates mandatory reason and submits order refund execution', async () => {
+    it('validates mandatory reason, opens confirm dialog, and executes refund', async () => {
       render(
         <AppProviders>
           <CreateRefundModal
@@ -164,13 +166,20 @@ describe('Phase 7B: Refunds & Settlements', () => {
       expect(mockExecuteOrderRefundMutateAsync).not.toHaveBeenCalled();
 
       // Enter reason and amount
-      const reasonInput = screen.getByPlaceholderText(/customer cancelled before dispatch/i);
+      const reasonInput = screen.getByPlaceholderText(/defective unit/i);
       fireEvent.change(reasonInput, { target: { value: 'Product damaged in transit' } });
 
-      const amountInput = screen.getByPlaceholderText(/leave blank for full order balance/i);
+      const amountInput = screen.getByPlaceholderText(/full remaining balance/i);
       fireEvent.change(amountInput, { target: { value: '2500.00' } });
 
+      // Click Authorize Refund to trigger ConfirmDialog
       fireEvent.click(submitBtn);
+
+      // Confirm dialog should appear
+      const confirmBtn = await screen.findByRole('button', { name: /confirm & disburse/i });
+      expect(confirmBtn).toBeInTheDocument();
+
+      fireEvent.click(confirmBtn);
 
       await waitFor(() => {
         expect(mockExecuteOrderRefundMutateAsync).toHaveBeenCalledWith({
@@ -180,6 +189,70 @@ describe('Phase 7B: Refunds & Settlements', () => {
           refundShipping: false,
           manualReference: undefined,
         });
+      });
+    });
+
+    it('supports manual / COD refund mode with manual reference input', async () => {
+      render(
+        <AppProviders>
+          <CreateRefundModal
+            isOpen={true}
+            onClose={vi.fn()}
+            defaultOrderId="ord-cod-99"
+            defaultPaymentProvider="COD"
+          />
+        </AppProviders>
+      );
+
+      const reasonInput = screen.getByPlaceholderText(/defective unit/i);
+      fireEvent.change(reasonInput, { target: { value: 'Return collected via cash refund' } });
+
+      const manualRefInput = screen.getByPlaceholderText(/BKASH-TXN-9988/i);
+      fireEvent.change(manualRefInput, { target: { value: 'BKASH-MAN-1122' } });
+
+      const submitBtn = screen.getByRole('button', { name: /authorize refund/i });
+      fireEvent.click(submitBtn);
+
+      const confirmBtn = await screen.findByRole('button', { name: /confirm & disburse/i });
+      fireEvent.click(confirmBtn);
+
+      await waitFor(() => {
+        expect(mockExecuteOrderRefundMutateAsync).toHaveBeenCalledWith({
+          orderId: 'ord-cod-99',
+          amount: undefined,
+          reason: 'Return collected via cash refund',
+          refundShipping: false,
+          manualReference: 'BKASH-MAN-1122',
+        });
+      });
+    });
+
+    it('displays backend error message as-is when refund rejection occurs', async () => {
+      mockExecuteOrderRefundMutateAsync.mockRejectedValueOnce(
+        new Error('Requested refund amount (৳5000.00) exceeds maximum refundable balance (৳3500.00)')
+      );
+
+      render(
+        <AppProviders>
+          <CreateRefundModal
+            isOpen={true}
+            onClose={vi.fn()}
+            defaultOrderId="ord-1001"
+          />
+        </AppProviders>
+      );
+
+      const reasonInput = screen.getByPlaceholderText(/defective unit/i);
+      fireEvent.change(reasonInput, { target: { value: 'Over-refund test' } });
+
+      fireEvent.click(screen.getByRole('button', { name: /authorize refund/i }));
+      const confirmBtn = await screen.findByRole('button', { name: /confirm & disburse/i });
+      fireEvent.click(confirmBtn);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/exceeds maximum refundable balance/i)
+        ).toBeInTheDocument();
       });
     });
   });
@@ -208,7 +281,19 @@ describe('Phase 7B: Refunds & Settlements', () => {
     });
   });
 
-  describe('5. Permission Gates & Actions', () => {
+  describe('5. StatusBadge New Refund Statuses', () => {
+    it('renders REFUND_PENDING and PENDING_MANUAL correctly in StatusBadge', () => {
+      const { rerender } = render(
+        <StatusBadge status="REFUND_PENDING" />
+      );
+      expect(screen.getByText(/refund pending/i)).toBeInTheDocument();
+
+      rerender(<StatusBadge status="PENDING_MANUAL" />);
+      expect(screen.getByText(/pending manual/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('6. Permission Gates & Actions', () => {
     it('hides Issue Order Refund button when user lacks refund:approve permission', () => {
       setupPermissions(['refund:read'], false);
 
@@ -222,4 +307,3 @@ describe('Phase 7B: Refunds & Settlements', () => {
     });
   });
 });
-
