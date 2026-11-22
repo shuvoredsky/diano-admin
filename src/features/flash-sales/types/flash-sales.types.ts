@@ -43,3 +43,16 @@ export interface CreateFlashSaleInput {
   items: CreateFlashSaleItemInput[];
 }
 
+export interface UpdateFlashSaleInput {
+  title?: string;
+  name?: string;
+  description?: string | null;
+  startsAt?: string;
+  endsAt?: string;
+  isActive?: boolean;
+  status?: 'ACTIVE' | 'INACTIVE' | 'CANCELLED' | 'ENDED';
+  action?: 'CANCEL' | 'END' | 'ACTIVATE' | 'DEACTIVATE';
+  items?: CreateFlashSaleItemInput[];
+}
+
+

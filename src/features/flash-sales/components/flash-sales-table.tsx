@@ -1,25 +1,59 @@
 'use client';
 
-import { Zap, Calendar, Package, Info } from 'lucide-react';
+import { useState } from 'react';
+import { Zap, Calendar, Package, Edit, Ban, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { MoneyText } from '@/components/shared/money-text';
 import { DateText } from '@/components/shared/date-text';
 import { PermissionGate } from '@/components/shared/permission-gate';
+import { ConfirmDialog } from '@/components/feedback/confirm-dialog';
 import { EmptyState } from '@/components/feedback/empty-state';
+import {
+  useCancelFlashSaleMutation,
+  useDeleteFlashSaleMutation,
+} from '../hooks/use-flash-sales-queries';
 import type { FlashSaleEntity } from '../types/flash-sales.types';
 
 export interface FlashSalesTableProps {
   sales: FlashSaleEntity[];
   isLoading: boolean;
   onCreateSale: () => void;
+  onEditSale?: (sale: FlashSaleEntity) => void;
 }
 
 export function FlashSalesTable({
   sales,
   isLoading,
   onCreateSale,
+  onEditSale,
 }: FlashSalesTableProps) {
+  const [cancelTarget, setCancelTarget] = useState<FlashSaleEntity | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<FlashSaleEntity | null>(null);
+
+  const cancelMutation = useCancelFlashSaleMutation();
+  const deleteMutation = useDeleteFlashSaleMutation();
+
+  const handleConfirmCancel = async () => {
+    if (!cancelTarget) return;
+    try {
+      await cancelMutation.mutateAsync(cancelTarget.id);
+      setCancelTarget(null);
+    } catch {
+      // Handled in mutation onError
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteMutation.mutateAsync(deleteTarget.id);
+      setDeleteTarget(null);
+    } catch {
+      // Handled in mutation onError
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="rounded-xl border border-border bg-card p-4 space-y-3">
@@ -58,7 +92,7 @@ export function FlashSalesTable({
                 <th className="px-4 py-3">Schedule (Dhaka)</th>
                 <th className="px-4 py-3 text-center">Allocated Items</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">API Operations</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -68,6 +102,7 @@ export function FlashSalesTable({
                 const ends = new Date(sale.endsAt);
                 const isLive = starts <= now && ends >= now && sale.isActive;
                 const isUpcoming = starts > now;
+                const isEnded = !sale.isActive || ends < now;
 
                 return (
                   <tr key={sale.id} className="hover:bg-muted/30 transition-colors">
@@ -101,17 +136,57 @@ export function FlashSalesTable({
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge
-                        status={isLive ? 'ACTIVE' : isUpcoming ? 'SCHEDULED' : 'EXPIRED'}
+                        status={
+                          !sale.isActive
+                            ? 'CANCELLED'
+                            : isLive
+                            ? 'ACTIVE'
+                            : isUpcoming
+                            ? 'SCHEDULED'
+                            : 'EXPIRED'
+                        }
                       />
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span
-                        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded"
-                        title="Edit and delete actions are not supported by the current backend API (BG-06)"
-                      >
-                        <Info className="h-3 w-3 text-muted-foreground/70" />
-                        Read-only (BG-06)
-                      </span>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <PermissionGate permission="coupon:manage">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onEditSale?.(sale)}
+                            className="h-7 px-2 text-xs gap-1 cursor-pointer"
+                            aria-label={`Edit ${sale.title}`}
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                            <span>Edit</span>
+                          </Button>
+
+                          {/* Rule: delete only when startsAt is in the future; hide delete once started, show Cancel instead */}
+                          {isUpcoming ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteTarget(sale)}
+                              className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 gap-1 cursor-pointer"
+                              aria-label={`Delete ${sale.title}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span>Delete</span>
+                            </Button>
+                          ) : !isEnded && sale.isActive ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setCancelTarget(sale)}
+                              className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 gap-1 cursor-pointer"
+                              aria-label={`Cancel ${sale.title}`}
+                            >
+                              <Ban className="h-3.5 w-3.5" />
+                              <span>Cancel</span>
+                            </Button>
+                          ) : null}
+                        </PermissionGate>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -152,7 +227,30 @@ export function FlashSalesTable({
           </div>
         </div>
       )}
+
+      {/* Cancel Confirmation Dialog */}
+      <ConfirmDialog
+        open={cancelTarget !== null}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+        title="Cancel Flash Sale Campaign"
+        description={`Are you sure you want to cancel "${cancelTarget?.title}"? This campaign has already started. Cancelling will deactivate discount pricing immediately across customer channels.`}
+        confirmLabel="Cancel Campaign"
+        variant="destructive"
+        isLoading={cancelMutation.isPending}
+        onConfirm={handleConfirmCancel}
+      />
+
+      {/* Delete Confirmation Dialog (Future campaigns only) */}
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete Scheduled Flash Sale"
+        description={`Are you sure you want to permanently delete the upcoming campaign "${deleteTarget?.title}"? This campaign has not started yet and will be completely removed.`}
+        confirmLabel="Delete Campaign"
+        variant="destructive"
+        isLoading={deleteMutation.isPending}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }
-

@@ -5,4 +5,6 @@ export * from './api/flash-sales.api';
 export * from './hooks/use-flash-sales-queries';
 export * from './components/flash-sales-table';
 export * from './components/create-flash-sale-modal';
+export * from './components/edit-flash-sale-modal';
 export * from './components/flash-sales-manager';
+
