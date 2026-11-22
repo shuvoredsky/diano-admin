@@ -309,6 +309,62 @@ describe('Phase 6A: Orders Management & State Machine', () => {
       expect(screen.queryByRole('button', { name: /cancel order/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /process/i })).not.toBeInTheDocument();
     });
+
+    it('disables SHIPPED action with explanation when order has no shipments and guides to create-shipment', () => {
+      currentMockOrder = {
+        ...mockOrderPending,
+        id: 'ord-packed-no-shipment',
+        status: 'PACKED',
+        shipments: [],
+      };
+      setupPermissions(['order:read', 'order:ship', 'order:manage'], true);
+
+      render(
+        <AppProviders>
+          <OrderDetailModal orderId="ord-packed-no-shipment" isOpen={true} onClose={vi.fn()} />
+        </AppProviders>
+      );
+
+      const shipBtn = screen.getByRole('button', { name: /dispatch \/ ship/i });
+      expect(shipBtn).toBeDisabled();
+      expect(screen.getByText(/requires shipment tracking/i)).toBeInTheDocument();
+
+      const createShipmentGuideBtn = screen.getByTitle(/open create shipment modal to assign courier and generate tracking/i);
+      expect(createShipmentGuideBtn).toBeInTheDocument();
+      fireEvent.click(createShipmentGuideBtn);
+
+      expect(screen.getByText(/create shipment for/i)).toBeInTheDocument();
+    });
+
+    it('enables SHIPPED action when order has at least one shipment record', () => {
+      currentMockOrder = {
+        ...mockOrderPending,
+        id: 'ord-packed-with-shipment',
+        status: 'PACKED',
+        shipments: [
+          {
+            id: 'shp-101',
+            orderId: 'ord-packed-with-shipment',
+            courierName: 'Steadfast Courier',
+            trackingNumber: 'ST-998877',
+            status: 'PENDING',
+            createdAt: '2026-11-12T10:00:00.000Z',
+            updatedAt: '2026-11-12T10:00:00.000Z',
+          },
+        ],
+      };
+      setupPermissions(['order:read', 'order:ship', 'order:manage'], true);
+
+      render(
+        <AppProviders>
+          <OrderDetailModal orderId="ord-packed-with-shipment" isOpen={true} onClose={vi.fn()} />
+        </AppProviders>
+      );
+
+      const shipBtn = screen.getByRole('button', { name: /dispatch \/ ship/i });
+      expect(shipBtn).toBeEnabled();
+      expect(screen.queryByText(/requires shipment tracking/i)).not.toBeInTheDocument();
+    });
   });
 
   describe('4. Permission Gating & Confirmations', () => {
@@ -373,7 +429,7 @@ describe('Phase 6A: Orders Management & State Machine', () => {
       });
     });
 
-    it('displays shipment warning notice when dispatching order without shipment tracking', async () => {
+    it('disables dispatch button and shows shipment requirement when order has no shipments', async () => {
       currentMockOrder = {
         ...mockOrderPending,
         id: 'ord-packed-01',
@@ -389,14 +445,8 @@ describe('Phase 6A: Orders Management & State Machine', () => {
       );
 
       const dispatchBtn = screen.getByRole('button', { name: /dispatch \/ ship/i });
-      fireEvent.click(dispatchBtn);
-
-      expect(
-        screen.getByText(/notice: no shipment tracking created/i)
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(/no shipment or tracking number has been recorded for this order yet/i)
-      ).toBeInTheDocument();
+      expect(dispatchBtn).toBeDisabled();
+      expect(screen.getByText(/requires shipment tracking/i)).toBeInTheDocument();
     });
   });
 

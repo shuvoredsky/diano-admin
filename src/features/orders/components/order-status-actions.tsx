@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Truck } from 'lucide-react';
 import type { OrderDetailEntity, OrderStatus } from '../types/orders.types';
 import {
   ORDER_TRANSITION_TABLE,
@@ -12,6 +12,7 @@ import { useUpdateOrderStatusMutation } from '../hooks/use-orders-queries';
 import { PermissionGate } from '@/components/shared/permission-gate';
 import { ConfirmDialog } from '@/components/feedback/confirm-dialog';
 import { Button } from '@/components/ui/button';
+import { CreateShipmentModal } from '@/features/shipping/components/create-shipment-modal';
 
 export interface OrderStatusActionsProps {
   order: OrderDetailEntity;
@@ -23,6 +24,7 @@ export function OrderStatusActions({ order, onStatusUpdated, onError }: OrderSta
   const [pendingTransition, setPendingTransition] = useState<OrderStatus | null>(null);
   const [statusNote, setStatusNote] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+  const [isCreateShipmentOpen, setIsCreateShipmentOpen] = useState(false);
 
   const updateStatusMutation = useUpdateOrderStatusMutation();
 
@@ -59,6 +61,7 @@ export function OrderStatusActions({ order, onStatusUpdated, onError }: OrderSta
   };
 
   const nextTransitions = ORDER_TRANSITION_TABLE[order.status] || [];
+  const hasShipments = Boolean(order.shipments && order.shipments.length > 0);
 
   return (
     <>
@@ -68,37 +71,66 @@ export function OrderStatusActions({ order, onStatusUpdated, onError }: OrderSta
           const isSecondary = targetStatus === 'RETURNED' || targetStatus === 'REFUNDED';
           const btnVariant = isCancel ? 'destructive' : isSecondary ? 'outline' : 'default';
           const requiredPermission = getRequiredPermissionForTransition(targetStatus);
+          const isShippedBlocked = targetStatus === 'SHIPPED' && !hasShipments;
 
           return (
             <PermissionGate
               key={targetStatus}
               permissions={[requiredPermission, 'order:manage']}
             >
-              <Button
-                type="button"
-                variant={btnVariant}
-                size="sm"
-                disabled={updateStatusMutation.isPending}
-                onClick={() => handleInitiateTransition(targetStatus)}
-              >
-                {targetStatus === 'CONFIRMED'
-                  ? 'Confirm Order'
-                  : targetStatus === 'PROCESSING'
-                  ? 'Process Order'
-                  : targetStatus === 'PACKED'
-                  ? 'Mark Packed'
-                  : targetStatus === 'SHIPPED'
-                  ? 'Dispatch / Ship'
-                  : targetStatus === 'DELIVERED'
-                  ? 'Mark Delivered'
-                  : targetStatus === 'CANCELLED'
-                  ? 'Cancel Order'
-                  : targetStatus === 'RETURNED'
-                  ? 'Mark Returned'
-                  : targetStatus === 'REFUNDED'
-                  ? 'Mark Refunded'
-                  : `Mark ${ORDER_STATUS_LABELS[targetStatus] || targetStatus}`}
-              </Button>
+              <div className="inline-flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant={btnVariant}
+                  size="sm"
+                  disabled={updateStatusMutation.isPending || isShippedBlocked}
+                  onClick={() => handleInitiateTransition(targetStatus)}
+                  title={
+                    isShippedBlocked
+                      ? 'Cannot dispatch: At least one courier shipment record is required before transitioning to SHIPPED.'
+                      : undefined
+                  }
+                  className="cursor-pointer"
+                >
+                  {targetStatus === 'CONFIRMED'
+                    ? 'Confirm Order'
+                    : targetStatus === 'PROCESSING'
+                    ? 'Process Order'
+                    : targetStatus === 'PACKED'
+                    ? 'Mark Packed'
+                    : targetStatus === 'SHIPPED'
+                    ? 'Dispatch / Ship'
+                    : targetStatus === 'DELIVERED'
+                    ? 'Mark Delivered'
+                    : targetStatus === 'CANCELLED'
+                    ? 'Cancel Order'
+                    : targetStatus === 'RETURNED'
+                    ? 'Mark Returned'
+                    : targetStatus === 'REFUNDED'
+                    ? 'Mark Refunded'
+                    : `Mark ${ORDER_STATUS_LABELS[targetStatus] || targetStatus}`}
+                </Button>
+
+                {/* Explanation and Guide to Create Shipment Modal when SHIPPED is blocked */}
+                {isShippedBlocked && (
+                  <div className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
+                    <span className="text-[11px] font-medium hidden sm:inline">
+                      (Requires shipment tracking)
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsCreateShipmentOpen(true)}
+                      className="h-8 px-2 text-xs gap-1 border-amber-500/40 text-amber-800 dark:text-amber-300 hover:bg-amber-500/10 cursor-pointer"
+                      title="Open create shipment modal to assign courier and generate tracking"
+                    >
+                      <Truck className="h-3 w-3" />
+                      <span>Create Shipment</span>
+                    </Button>
+                  </div>
+                )}
+              </div>
             </PermissionGate>
           );
         })}
@@ -128,20 +160,35 @@ export function OrderStatusActions({ order, onStatusUpdated, onError }: OrderSta
                     pendingTransition ? ORDER_STATUS_LABELS[pendingTransition] : ''
                   }.`}
             </p>
-            {pendingTransition === 'SHIPPED' && (!order.shipments || order.shipments.length === 0) && (
+
+            {pendingTransition === 'SHIPPED' && !hasShipments && (
               <div
                 role="alert"
-                className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-800 dark:text-amber-300"
+                className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-2.5 text-xs text-destructive"
               >
-                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-                <div>
-                  <p className="font-semibold">Notice: No shipment tracking created</p>
-                  <p className="text-[11px] opacity-90">
-                    No shipment or tracking number has been recorded for this order yet. You may still proceed with marking it as shipped, but creating a shipment first is recommended.
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
+                <div className="space-y-1">
+                  <p className="font-semibold">Shipment Record Required</p>
+                  <p className="text-[11px] leading-relaxed">
+                    Cannot transition order to SHIPPED without an existing shipment record. Assign a courier and generate tracking first.
                   </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setPendingTransition(null);
+                      setIsCreateShipmentOpen(true);
+                    }}
+                    className="h-6 px-2 text-[11px] gap-1 mt-1 cursor-pointer"
+                  >
+                    <Truck className="h-3 w-3" />
+                    Open Create Shipment Modal
+                  </Button>
                 </div>
               </div>
             )}
+
             <div className="space-y-1">
               <label className="text-[11px] font-semibold text-foreground">
                 {pendingTransition === 'CANCELLED'
@@ -176,6 +223,18 @@ export function OrderStatusActions({ order, onStatusUpdated, onError }: OrderSta
         }
         isLoading={updateStatusMutation.isPending}
         onConfirm={handleConfirmTransition}
+      />
+
+      {/* Guided Create Shipment Modal */}
+      <CreateShipmentModal
+        isOpen={isCreateShipmentOpen}
+        onClose={() => setIsCreateShipmentOpen(false)}
+        orderId={order.id}
+        orderNumber={order.orderNumber}
+        onSuccess={() => {
+          setIsCreateShipmentOpen(false);
+          onStatusUpdated();
+        }}
       />
     </>
   );
