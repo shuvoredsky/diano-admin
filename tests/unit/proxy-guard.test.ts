@@ -45,4 +45,13 @@ describe('Next.js 16 Proxy Guard & Open-Redirect Sanitizer', () => {
       destination: '/admin',
     });
   });
+
+  it('allows access to /login when returnTo is present even if refresh cookie exists to prevent redirect loop', () => {
+    const decision = evaluateProxyRequest({
+      pathname: '/login',
+      search: '?returnTo=%2Fadmin%2Fproducts',
+      hasRefreshCookie: true,
+    });
+    expect(decision).toEqual({ action: 'next' });
+  });
 });

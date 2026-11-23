@@ -18,17 +18,23 @@ import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/layout/page-header';
 import { PermissionGate } from '@/components/shared/permission-gate';
 import { mapBackendValidationErrors, useDirtyFormGuard } from '@/lib/crud';
+import { ApiClientError } from '@/lib/api/api-error';
 import {
   useCreateProductMutation,
   useUpdateProductMutation,
 } from '../../hooks/use-products-queries';
+import {
+  uploadProductThumbnail,
+  uploadProductBackview,
+  uploadProductGalleryImage,
+} from '../../api/products.api';
 import type { AdminProductDto, CreateProductPayload, UpdateProductPayload } from '../../types/products.types';
 import type { ProductFormData } from './product-form-types';
 import { ProductBasicSection } from './product-basic-section';
 import { ProductPricingSection } from './product-pricing-section';
 import { ProductVariantsSection } from './product-variants-section';
 import { ProductSpecsSection } from './product-specs-section';
-import { ProductImagesSection } from './product-images-section';
+import { ProductImagesSection, type PendingImagesState } from './product-images-section';
 import { ProductSeoSection } from './product-seo-section';
 
 export interface ProductFormProps {
@@ -45,6 +51,7 @@ export function ProductForm({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>('basic');
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [pendingImages, setPendingImages] = useState<PendingImagesState>({ gallery: [] });
 
   const createMutation = useCreateProductMutation();
   const updateMutation = useUpdateProductMutation(initialProduct?.id || '');
@@ -96,6 +103,7 @@ export function ProductForm({
   const form = useForm<ProductFormData>({
     defaultValues,
     mode: 'onTouched',
+    shouldUnregister: false,
   });
 
   const {
@@ -122,7 +130,7 @@ export function ProductForm({
           .filter(Boolean)
       : [];
 
-    // Publish verification guard
+    // 1. Publish verification guard for ACTIVE status
     if (data.status === 'ACTIVE') {
       if (!data.categoryId) {
         setPublishError('Active products must have an assigned category');
@@ -152,6 +160,60 @@ export function ProductForm({
       }
     }
 
+    // 2. Required fields validation guards for catalog products
+    if (!data.name || data.name.trim().length < 2) {
+      setError('name', { type: 'manual', message: 'Product name must be at least 2 characters' });
+      setPublishError('Product name must be at least 2 characters');
+      setActiveTab('basic');
+      return;
+    }
+
+    if (!data.categoryId) {
+      setError('categoryId', { type: 'manual', message: 'Category is required' });
+      setPublishError('Please select a Category in Basic Info');
+      setActiveTab('basic');
+      return;
+    }
+
+    if (!data.description || data.description.trim().length < 10) {
+      setError('description', { type: 'manual', message: 'Description must be at least 10 characters' });
+      setPublishError('Full Product Description must be at least 10 characters');
+      setActiveTab('basic');
+      return;
+    }
+
+    // Pricing & Variants validation: Product MRP or Variant compareAtPrice is required when variant price is not explicitly specified
+    const parsedMrp =
+      data.mrp !== undefined && data.mrp !== null && !isNaN(Number(data.mrp)) && Number(data.mrp) > 0
+        ? Number(data.mrp)
+        : null;
+    const hasVariantPrices = data.variants?.every(
+      v => v.price !== undefined && v.price !== null && !isNaN(Number(v.price)) && Number(v.price) > 0
+    );
+    if (!parsedMrp && !hasVariantPrices) {
+      setError('mrp', {
+        type: 'manual',
+        message: 'Base MRP or Variant price is required',
+      });
+      setPublishError('Please specify Base MRP in "Pricing & Discounts" or set individual prices for all variants');
+      setActiveTab('pricing');
+      return;
+    }
+
+    if (!data.variants || data.variants.length === 0) {
+      setError('variants', { type: 'manual', message: 'At least one variant is required' });
+      setPublishError('At least one product variant is required');
+      setActiveTab('variants');
+      return;
+    }
+
+    const hasInvalidVariant = data.variants.some(v => !v.name?.trim() || !v.sku?.trim());
+    if (hasInvalidVariant) {
+      setPublishError('All variants must have a name and a valid SKU in "Variants" tab');
+      setActiveTab('variants');
+      return;
+    }
+
     try {
       if (isCreateMode) {
         const payload: CreateProductPayload = {
@@ -162,9 +224,12 @@ export function ProductForm({
           categoryId: data.categoryId,
           subcategoryId: data.subcategoryId || null,
           videoUrl: data.videoUrl?.trim() || null,
-          mrp: data.mrp || null,
+          mrp: parsedMrp,
           discountType: data.discountType,
-          discountValue: data.discountValue || null,
+          discountValue:
+            data.discountValue !== undefined && data.discountValue !== null && !isNaN(Number(data.discountValue))
+              ? Number(data.discountValue)
+              : null,
           freeShipping: data.freeShipping,
           specialOffer: data.specialOffer,
           isFeatured: data.isFeatured,
@@ -177,19 +242,49 @@ export function ProductForm({
           },
           status: data.status,
           tags: parsedTags,
-          variants: data.variants.map(v => ({
-            name: v.name.trim(),
-            sku: v.sku.trim().toUpperCase(),
-            barcode: v.barcode?.trim() || null,
-            price: v.price,
-            compareAtPrice: v.compareAtPrice,
-            costPrice: v.costPrice,
-            isActive: v.isActive,
-          })),
+          variants: data.variants.map(v => {
+            const variantPrice =
+              v.price !== undefined && v.price !== null && !isNaN(Number(v.price)) && Number(v.price) > 0
+                ? Number(v.price)
+                : undefined;
+            const variantCompareAt =
+              v.compareAtPrice !== undefined && v.compareAtPrice !== null && !isNaN(Number(v.compareAtPrice)) && Number(v.compareAtPrice) > 0
+                ? Number(v.compareAtPrice)
+                : (parsedMrp ?? null);
+            return {
+              name: v.name.trim(),
+              sku: v.sku.trim().toUpperCase(),
+              barcode: v.barcode?.trim() || null,
+              price: variantPrice,
+              compareAtPrice: variantCompareAt,
+              costPrice:
+                v.costPrice !== undefined && v.costPrice !== null && !isNaN(Number(v.costPrice))
+                  ? Number(v.costPrice)
+                  : null,
+              isActive: v.isActive,
+            };
+          }),
         };
 
         const created = await createMutation.mutateAsync(payload);
-        router.push(`/admin/products/${created.id}`);
+
+        // Upload any media selected during creation
+        const uploadTasks: Promise<unknown>[] = [];
+        if (pendingImages.thumbnail) {
+          uploadTasks.push(uploadProductThumbnail(created.id, pendingImages.thumbnail));
+        }
+        if (pendingImages.backview) {
+          uploadTasks.push(uploadProductBackview(created.id, pendingImages.backview));
+        }
+        for (const item of pendingImages.gallery) {
+          uploadTasks.push(uploadProductGalleryImage(created.id, item.file));
+        }
+
+        if (uploadTasks.length > 0) {
+          await Promise.allSettled(uploadTasks);
+        }
+
+        router.push('/admin/products');
       } else if (initialProduct) {
         const payload: UpdateProductPayload = {
           name: data.name.trim(),
@@ -199,9 +294,12 @@ export function ProductForm({
           categoryId: data.categoryId,
           subcategoryId: data.subcategoryId || null,
           videoUrl: data.videoUrl?.trim() || null,
-          mrp: data.mrp || null,
+          mrp: parsedMrp,
           discountType: data.discountType,
-          discountValue: data.discountValue || null,
+          discountValue:
+            data.discountValue !== undefined && data.discountValue !== null && !isNaN(Number(data.discountValue))
+              ? Number(data.discountValue)
+              : null,
           freeShipping: data.freeShipping,
           specialOffer: data.specialOffer,
           isFeatured: data.isFeatured,
@@ -221,11 +319,56 @@ export function ProductForm({
       }
     } catch (err: unknown) {
       const generalMsg = mapBackendValidationErrors(err, setError);
-      setPublishError(generalMsg || (err instanceof Error ? err.message : 'An error occurred while saving'));
+      let detailedMsg = generalMsg;
+      if (err instanceof ApiClientError && Array.isArray(err.errors) && err.errors.length > 0) {
+        const details = (err.errors as { field?: string; message?: string }[])
+          .map(e => e.message)
+          .filter(Boolean);
+        if (details.length > 0) {
+          detailedMsg = `${generalMsg}: ${details.join(' • ')}`;
+        }
+
+        // Auto-switch to the first tab that has an error
+        const errorFields = (err.errors as { field?: string; path?: string }[])
+          .map(e => e.field || e.path || '')
+          .filter(Boolean);
+
+        if (errorFields.some(f => ['name', 'slug', 'categoryId', 'subcategoryId', 'description', 'shortDescription', 'videoUrl', 'inventoryType'].includes(f))) {
+          setActiveTab('basic');
+        } else if (errorFields.some(f => ['mrp', 'discountType', 'discountValue'].includes(f))) {
+          setActiveTab('pricing');
+        } else if (errorFields.some(f => f.startsWith('variants'))) {
+          setActiveTab('variants');
+        } else if (errorFields.some(f => f.startsWith('specifications'))) {
+          setActiveTab('specs');
+        } else if (errorFields.some(f => f.startsWith('seo') || ['metaTitle', 'metaDescription', 'metaKeywords'].includes(f))) {
+          setActiveTab('seo');
+        }
+      }
+      setPublishError(detailedMsg || (err instanceof Error ? err.message : 'An error occurred while saving'));
     }
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending || isSubmitting;
+
+  const formErrors = form.formState.errors;
+  const tabErrors: Record<TabType, boolean> = {
+    basic: Boolean(
+      formErrors.name ||
+        formErrors.slug ||
+        formErrors.categoryId ||
+        formErrors.subcategoryId ||
+        formErrors.description ||
+        formErrors.shortDescription ||
+        formErrors.videoUrl ||
+        formErrors.inventoryType
+    ),
+    pricing: Boolean(formErrors.mrp || formErrors.discountType || formErrors.discountValue),
+    variants: Boolean(formErrors.variants),
+    specs: Boolean(formErrors.specifications),
+    media: false,
+    seo: Boolean(formErrors.metaTitle || formErrors.metaDescription || formErrors.metaKeywords),
+  };
 
   const tabs: { id: TabType; label: string; icon: typeof FileText }[] = [
     { id: 'basic', label: 'Basic Info', icon: FileText },
@@ -248,7 +391,7 @@ export function ProductForm({
         actions={
           <div className="flex items-center gap-3">
             <Link href="/admin/products">
-              <Button type="button" variant="outline" className="flex items-center gap-1.5">
+              <Button type="button" variant="outline" className="flex items-center gap-1.5 cursor-pointer">
                 <ArrowLeft className="h-4 w-4" />
                 <span>Cancel</span>
               </Button>
@@ -258,7 +401,7 @@ export function ProductForm({
               <Button
                 type="submit"
                 disabled={isPending}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 cursor-pointer"
               >
                 <Save className="h-4 w-4" />
                 <span>
@@ -288,7 +431,7 @@ export function ProductForm({
           <select
             {...register('status')}
             aria-label="Product Publication Status"
-            className="h-8 rounded-lg border border-border bg-background px-3 text-xs font-bold text-foreground transition-colors hover:border-primary/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            className="h-8 rounded-lg border border-border bg-background px-3 text-xs font-bold text-foreground transition-colors hover:border-primary/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
           >
             <option value="DRAFT">DRAFT (Unpublished)</option>
             <option value="ACTIVE">ACTIVE (Visible in Storefront)</option>
@@ -310,6 +453,7 @@ export function ProductForm({
         {tabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
+          const hasError = tabErrors[tab.id];
           return (
             <button
               key={tab.id}
@@ -323,24 +467,44 @@ export function ProductForm({
             >
               <Icon className="h-4 w-4" />
               <span>{tab.label}</span>
+              {hasError && (
+                <span
+                  className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground animate-pulse"
+                  title="Contains required fields or validation errors"
+                >
+                  !
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
-      {/* Tab Panels */}
+      {/* Tab Panels: keep mounted with CSS display to preserve form input states and DOM refs across tab switches */}
       <div className="rounded-2xl border border-border bg-card p-6 shadow-2xs">
-        {activeTab === 'basic' && <ProductBasicSection form={form} />}
-        {activeTab === 'pricing' && <ProductPricingSection form={form} />}
-        {activeTab === 'variants' && <ProductVariantsSection form={form} />}
-        {activeTab === 'specs' && <ProductSpecsSection form={form} />}
-        {activeTab === 'media' && (
+        <div className={activeTab === 'basic' ? 'block' : 'hidden'}>
+          <ProductBasicSection form={form} />
+        </div>
+        <div className={activeTab === 'pricing' ? 'block' : 'hidden'}>
+          <ProductPricingSection form={form} />
+        </div>
+        <div className={activeTab === 'variants' ? 'block' : 'hidden'}>
+          <ProductVariantsSection form={form} />
+        </div>
+        <div className={activeTab === 'specs' ? 'block' : 'hidden'}>
+          <ProductSpecsSection form={form} />
+        </div>
+        <div className={activeTab === 'media' ? 'block' : 'hidden'}>
           <ProductImagesSection
             product={initialProduct}
             isCreateMode={isCreateMode}
+            pendingImages={pendingImages}
+            onPendingImagesChange={setPendingImages}
           />
-        )}
-        {activeTab === 'seo' && <ProductSeoSection form={form} />}
+        </div>
+        <div className={activeTab === 'seo' ? 'block' : 'hidden'}>
+          <ProductSeoSection form={form} />
+        </div>
       </div>
     </form>
   );

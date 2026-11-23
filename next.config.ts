@@ -32,7 +32,7 @@ const contentSecurityPolicy = `
   default-src 'self';
   script-src 'self' 'unsafe-inline' 'unsafe-eval';
   style-src 'self' 'unsafe-inline';
-  img-src 'self' data: blob: https://res.cloudinary.com;
+  img-src 'self' data: blob: https://res.cloudinary.com http://localhost:* http://127.0.0.1:*;
   font-src 'self' data:;
   connect-src ${getConnectSources()};
   object-src 'none';
@@ -53,7 +53,26 @@ const nextConfig: NextConfig = {
         hostname: 'res.cloudinary.com',
         pathname: '/**',
       },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        pathname: '/**',
+      },
     ],
+  },
+  async rewrites() {
+    const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:5000';
+    return [
+      {
+        source: '/uploads/:path*',
+        destination: `${backendUrl.replace(/\/$/, '')}/uploads/:path*`,
+      },
+    ];
   },
   async headers() {
     return [

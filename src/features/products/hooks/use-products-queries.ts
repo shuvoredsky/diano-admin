@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   addProductVariant,
   createProduct,
@@ -64,8 +65,13 @@ export function useCreateProductMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: CreateProductPayload) => createProduct(payload),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      toast.success(`Product "${data.name}" created successfully!`);
       queryClient.invalidateQueries({ queryKey: productKeys.admin() });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to create product';
+      toast.error(msg);
     },
   });
 }
@@ -74,9 +80,14 @@ export function useUpdateProductMutation(productId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: UpdateProductPayload) => updateProduct(productId, payload),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      toast.success(`Product "${data.name}" updated successfully!`);
       queryClient.invalidateQueries({ queryKey: productKeys.detail(productId) });
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to update product';
+      toast.error(msg);
     },
   });
 }
@@ -86,7 +97,12 @@ export function useDeleteProductMutation() {
   return useMutation({
     mutationFn: (id: string) => deleteProduct(id),
     onSuccess: () => {
+      toast.success('Product deleted successfully');
       queryClient.invalidateQueries({ queryKey: productKeys.admin() });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to delete product';
+      toast.error(msg);
     },
   });
 }
@@ -171,6 +187,11 @@ export function useUploadProductImageMutation(productId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.detail(productId) });
+      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+      toast.success('Product image uploaded successfully');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to upload product image');
     },
   });
 }
@@ -181,6 +202,11 @@ export function useDeleteProductImageMutation(productId: string) {
     mutationFn: (imageId: string) => deleteProductImage(productId, imageId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.detail(productId) });
+      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+      toast.success('Product image removed');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to delete image');
     },
   });
 }
@@ -192,6 +218,11 @@ export function useReorderProductImagesMutation(productId: string) {
       reorderProductImages(productId, items),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.detail(productId) });
+      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+      toast.success('Images reordered successfully');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to reorder images');
     },
   });
 }

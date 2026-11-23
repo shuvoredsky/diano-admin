@@ -3,6 +3,7 @@
 import { useState, useRef, type ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { UploadCloud, X, Image as ImageIcon, CheckCircle } from 'lucide-react';
+import { resolveMediaUrl } from '@/lib/utils/media';
 
 export type ImageSlot = 'thumbnail' | 'backview' | 'gallery';
 
@@ -87,7 +88,7 @@ export function ImageSlotUploader({
         currentUrl ? (
           <div className="relative group flex h-40 w-full items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/20">
             <img
-              src={currentUrl}
+              src={resolveMediaUrl(currentUrl)}
               alt={label || slot}
               className="h-full w-full object-contain"
             />

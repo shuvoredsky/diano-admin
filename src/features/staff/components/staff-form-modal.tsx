@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, UserPlus, AlertCircle, ShieldAlert } from 'lucide-react';
+import { X, UserPlus, AlertCircle, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,8 +17,6 @@ export interface StaffFormModalProps {
   rolesList?: Array<{ slug: string; name: string }>;
 }
 
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,128}$/;
-
 export function StaffFormModal({
   open,
   onOpenChange,
@@ -32,6 +30,7 @@ export function StaffFormModal({
   const [phone, setPhone] = useState('');
   const [roleSlug, setRoleSlug] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [tempPasswordDisplay, setTempPasswordDisplay] = useState<string | null>(null);
 
@@ -63,11 +62,11 @@ export function StaffFormModal({
       setName('');
       setEmail('');
       setPhone('');
-      setRoleSlug((prev) => prev || rolesList[0]?.slug || 'staff');
+      setRoleSlug((prev) => prev || rolesList[0]?.slug || '');
       setPassword('');
     }
     setApiError(null);
-  }, [staffToEdit, open]);
+  }, [staffToEdit, open, rolesList]);
 
   if (!open) return null;
 
@@ -95,8 +94,8 @@ export function StaffFormModal({
       return;
     }
 
-    if (!isEditing && password && !PASSWORD_REGEX.test(password)) {
-      setApiError('Password must be 8-128 chars and include uppercase, lowercase, digit, and special char');
+    if (!isEditing && password && password.length < 6) {
+      setApiError('Password must be at least 6 characters');
       return;
     }
 
@@ -237,16 +236,31 @@ export function StaffFormModal({
           {!isEditing && (
             <div className="space-y-1.5">
               <Label htmlFor="staff-password" className="text-xs">Initial Password (Optional)</Label>
-              <Input
-                id="staff-password"
-                type="password"
-                placeholder="Leave blank for secure auto-generation"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="h-9 text-xs"
-              />
+              <div className="relative">
+                <Input
+                  id="staff-password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="e.g. 12345678 or leave blank for auto-generation"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-9 text-xs pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground cursor-pointer focus:outline-hidden"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
               <p className="text-[11px] text-muted-foreground">
-                If omitted, the server will provision a cryptographically random credentials token.
+                Minimum 6 characters (e.g. 12345678). If omitted, a secure credentials token will be auto-generated.
               </p>
             </div>
           )}

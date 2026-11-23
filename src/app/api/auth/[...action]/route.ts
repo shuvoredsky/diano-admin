@@ -138,6 +138,18 @@ async function handleAuthProxy(
   }
 
   const incomingRefreshCookie = request.cookies.get(AUTH_COOKIE_NAMES.REFRESH_TOKEN)?.value;
+  if (actionPath === 'refresh' && !incomingRefreshCookie) {
+    return NextResponse.json(
+      {
+        success: false,
+        statusCode: 401,
+        message: 'No refresh token provided in session cookie',
+        timestamp: new Date().toISOString(),
+      },
+      { status: 401 },
+    );
+  }
+
   if (incomingRefreshCookie) {
     forwardHeaders.Cookie = `${AUTH_COOKIE_NAMES.REFRESH_TOKEN}=${encodeURIComponent(incomingRefreshCookie)}`;
   }
@@ -173,7 +185,11 @@ async function handleAuthProxy(
 
     const rotatedToken = extractCookieToken(setCookieHeaders, AUTH_COOKIE_NAMES.REFRESH_TOKEN);
 
-    if (actionPath === 'logout' || actionPath === 'logout-all') {
+    if (
+      actionPath === 'logout' ||
+      actionPath === 'logout-all' ||
+      (actionPath === 'refresh' && upstreamRes.status >= 400)
+    ) {
       nextRes.cookies.delete(AUTH_COOKIE_NAMES.REFRESH_TOKEN);
     } else if (rotatedToken) {
       nextRes.cookies.set(AUTH_COOKIE_NAMES.REFRESH_TOKEN, rotatedToken, {

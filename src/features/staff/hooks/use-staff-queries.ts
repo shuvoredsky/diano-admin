@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   fetchStaffUsers,
   getStaffUserById,
@@ -41,8 +42,13 @@ export function useCreateStaffMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateStaffInput) => createStaffUser(input),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      toast.success(`Staff account for ${data?.name || 'user'} created successfully`);
       queryClient.invalidateQueries({ queryKey: STAFF_QUERY_KEYS.listRoot() });
+      queryClient.refetchQueries({ queryKey: STAFF_QUERY_KEYS.listRoot() });
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to create staff account');
     },
   });
 }
@@ -52,9 +58,14 @@ export function useUpdateStaffMutation() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateStaffInput }) =>
       updateStaffUser(id, input),
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
+      toast.success(`Staff account ${data?.name ? `for ${data.name}` : ''} updated successfully`);
       queryClient.invalidateQueries({ queryKey: STAFF_QUERY_KEYS.listRoot() });
       queryClient.invalidateQueries({ queryKey: STAFF_QUERY_KEYS.detail(variables.id) });
+      queryClient.refetchQueries({ queryKey: STAFF_QUERY_KEYS.listRoot() });
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to update staff account');
     },
   });
 }
@@ -65,8 +76,13 @@ export function useUpdateStaffStatusMutation() {
     mutationFn: ({ id, status }: { id: string; status: 'ACTIVE' | 'SUSPENDED' }) =>
       updateStaffStatus(id, status),
     onSuccess: (_, variables) => {
+      toast.success(`Staff status changed to ${variables.status}`);
       queryClient.invalidateQueries({ queryKey: STAFF_QUERY_KEYS.listRoot() });
       queryClient.invalidateQueries({ queryKey: STAFF_QUERY_KEYS.detail(variables.id) });
+      queryClient.refetchQueries({ queryKey: STAFF_QUERY_KEYS.listRoot() });
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to update status');
     },
   });
 }
@@ -76,7 +92,12 @@ export function useDeleteStaffMutation() {
   return useMutation({
     mutationFn: (id: string) => deleteStaffUser(id),
     onSuccess: () => {
+      toast.success('Staff account deactivated');
       queryClient.invalidateQueries({ queryKey: STAFF_QUERY_KEYS.listRoot() });
+      queryClient.refetchQueries({ queryKey: STAFF_QUERY_KEYS.listRoot() });
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to deactivate account');
     },
   });
 }
@@ -84,5 +105,11 @@ export function useDeleteStaffMutation() {
 export function useRevokeStaffSessionsMutation() {
   return useMutation({
     mutationFn: (id: string) => revokeStaffSessions(id),
+    onSuccess: () => {
+      toast.success('All active sessions revoked for this staff member');
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to revoke sessions');
+    },
   });
 }

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { AUTH_QUERY_KEYS } from '@/features/auth/constants/auth.constants';
 import {
   fetchRolesList,
@@ -52,6 +53,10 @@ export function useCreateRoleMutation() {
     mutationFn: (input: CreateRoleInput) => createRole(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEYS.list });
+      toast.success('Role created successfully');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to create role');
     },
   });
 }
@@ -65,6 +70,10 @@ export function useUpdateRoleMutation() {
       queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEYS.list });
       queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEYS.detail(variables.id) });
       queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEYS.currentUser() });
+      toast.success('Role updated successfully');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to update role');
     },
   });
 }
@@ -75,6 +84,10 @@ export function useDeleteRoleMutation() {
     mutationFn: (id: string) => deleteRole(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEYS.list });
+      toast.success('Role deleted successfully');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to delete role');
     },
   });
 }
@@ -88,6 +101,10 @@ export function useAssignPermissionsMutation() {
       queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEYS.list });
       queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEYS.detail(variables.id) });
       queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEYS.currentUser() });
+      toast.success('Permissions assigned successfully');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to assign permissions');
     },
   });
 }

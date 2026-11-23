@@ -13,6 +13,19 @@ export interface StaffListResult {
   limit: number;
 }
 
+interface NestedData<T> {
+  data?: T;
+  meta?: Record<string, unknown>;
+  pagination?: { total?: number; page?: number; limit?: number };
+}
+
+function unwrap<T>(payload: T | NestedData<T>): T {
+  if (payload && typeof payload === 'object' && 'data' in payload && payload.data !== undefined) {
+    return payload.data as T;
+  }
+  return payload as T;
+}
+
 export async function fetchStaffUsers(params?: StaffFilterParams): Promise<StaffListResult> {
   const queryParams: Record<string, string | number> = {};
   if (params?.page) queryParams.page = params.page;
@@ -21,43 +34,44 @@ export async function fetchStaffUsers(params?: StaffFilterParams): Promise<Staff
   if (params?.status) queryParams.status = params.status;
   if (params?.search) queryParams.search = params.search;
 
-  const res = await api.get<{
-    success: boolean;
-    data: StaffUser[];
-    pagination?: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    };
-  }>('/users', { params: queryParams });
+  const res = await api.get<StaffUser[]>('/users', { params: queryParams });
+  const rawData = res.data as unknown;
 
-  return {
-    users: res.data.data ?? [],
-    total: res.data.pagination?.total ?? (res.data.data?.length ?? 0),
-    page: res.data.pagination?.page ?? 1,
-    limit: res.data.pagination?.limit ?? 20,
-  };
+  const users: StaffUser[] = Array.isArray(rawData)
+    ? rawData
+    : Array.isArray((rawData as { data?: StaffUser[] })?.data)
+      ? (rawData as { data?: StaffUser[] }).data!
+      : [];
+
+  const pagination =
+    (res.meta?.pagination as { totalItems?: number; page?: number; limit?: number } | undefined) ||
+    ((rawData as { meta?: { pagination?: { totalItems?: number; page?: number; limit?: number } } })?.meta?.pagination);
+
+  const total = pagination?.totalItems ?? users.length;
+  const page = pagination?.page ?? params?.page ?? 1;
+  const limit = pagination?.limit ?? params?.limit ?? 20;
+
+  return { users, total, page, limit };
 }
 
 export async function getStaffUserById(id: string): Promise<StaffUser> {
-  const res = await api.get<{ success: boolean; data: StaffUser }>(`/users/${id}`);
-  return res.data.data;
+  const res = await api.get<StaffUser>(`/users/${id}`);
+  return unwrap(res.data);
 }
 
 export async function createStaffUser(input: CreateStaffInput): Promise<StaffUser> {
-  const res = await api.post<{ success: boolean; data: StaffUser }>('/users', input);
-  return res.data.data;
+  const res = await api.post<StaffUser>('/users', input);
+  return unwrap(res.data);
 }
 
 export async function updateStaffUser(id: string, input: UpdateStaffInput): Promise<StaffUser> {
-  const res = await api.patch<{ success: boolean; data: StaffUser }>(`/users/${id}`, input);
-  return res.data.data;
+  const res = await api.patch<StaffUser>(`/users/${id}`, input);
+  return unwrap(res.data);
 }
 
 export async function updateStaffStatus(id: string, status: 'ACTIVE' | 'SUSPENDED'): Promise<StaffUser> {
-  const res = await api.patch<{ success: boolean; data: StaffUser }>(`/users/${id}/status`, { status });
-  return res.data.data;
+  const res = await api.patch<StaffUser>(`/users/${id}/status`, { status });
+  return unwrap(res.data);
 }
 
 export async function deleteStaffUser(id: string): Promise<void> {

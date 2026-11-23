@@ -59,7 +59,10 @@ export function ProductPricingSection({ form }: ProductPricingSectionProps) {
               placeholder="e.g. 2450.00"
               className="pl-8"
               {...register('mrp', {
-                valueAsNumber: true,
+                setValueAs: val =>
+                  val === '' || val === null || val === undefined || isNaN(Number(val))
+                    ? undefined
+                    : Number(val),
               })}
             />
           </div>
@@ -112,7 +115,10 @@ export function ProductPricingSection({ form }: ProductPricingSectionProps) {
                 placeholder={discountType === 'PERCENTAGE' ? '15' : '200'}
                 className="pl-8"
                 {...register('discountValue', {
-                  valueAsNumber: true,
+                  setValueAs: val =>
+                    val === '' || val === null || val === undefined || isNaN(Number(val))
+                      ? undefined
+                      : Number(val),
                 })}
               />
             </div>

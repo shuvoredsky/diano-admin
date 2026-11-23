@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { AlertCircle, Trash2, ArrowUp, ArrowDown, UploadCloud } from 'lucide-react';
+import { AlertCircle, Trash2, ArrowUp, ArrowDown, Info } from 'lucide-react';
+import { resolveMediaUrl } from '@/lib/utils/media';
 import { ImageSlotUploader } from '@/components/forms/image-slot-uploader';
 import {
   useDeleteProductImageMutation,
@@ -11,9 +12,25 @@ import {
 } from '../../hooks/use-products-queries';
 import type { AdminProductDto } from '../../types/products.types';
 
+export interface PendingGalleryItem {
+  id: string;
+  file: File;
+  preview: string;
+}
+
+export interface PendingImagesState {
+  thumbnail?: File | null;
+  thumbnailPreview?: string | null;
+  backview?: File | null;
+  backviewPreview?: string | null;
+  gallery: PendingGalleryItem[];
+}
+
 export interface ProductImagesSectionProps {
   product?: AdminProductDto;
   isCreateMode?: boolean;
+  pendingImages?: PendingImagesState;
+  onPendingImagesChange?: (updater: (prev: PendingImagesState) => PendingImagesState) => void;
 }
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -22,26 +39,14 @@ const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 export function ProductImagesSection({
   product,
   isCreateMode = false,
+  pendingImages,
+  onPendingImagesChange,
 }: ProductImagesSectionProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const uploadMutation = useUploadProductImageMutation(product?.id || '');
   const deleteMutation = useDeleteProductImageMutation(product?.id || '');
   const reorderMutation = useReorderProductImagesMutation(product?.id || '');
-
-  if (isCreateMode || !product) {
-    return (
-      <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-8 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-mint text-primary-deep dark:bg-mint/20 dark:text-primary mb-3">
-          <UploadCloud className="h-6 w-6" />
-        </div>
-        <h4 className="text-sm font-semibold text-foreground">Upload Images After Creating</h4>
-        <p className="mt-1 text-xs text-muted-foreground max-w-md mx-auto">
-          Once you save this product, you can upload and arrange thumbnail, back-view, and gallery media slots.
-        </p>
-      </div>
-    );
-  }
 
   const validateFile = (file: File): boolean => {
     setErrorMessage(null);
@@ -56,6 +61,61 @@ export function ProductImagesSection({
     return true;
   };
 
+  // --- Handlers for Create Mode (staged local files with instant object URL preview) ---
+  const handlePendingFile = (slot: 'THUMBNAIL' | 'BACKVIEW', file: File) => {
+    if (!validateFile(file)) return;
+    const previewUrl = URL.createObjectURL(file);
+    if (onPendingImagesChange) {
+      onPendingImagesChange(prev => ({
+        ...prev,
+        [slot === 'THUMBNAIL' ? 'thumbnail' : 'backview']: file,
+        [slot === 'THUMBNAIL' ? 'thumbnailPreview' : 'backviewPreview']: previewUrl,
+      }));
+    }
+  };
+
+  const handleRemovePending = (slot: 'THUMBNAIL' | 'BACKVIEW') => {
+    if (onPendingImagesChange) {
+      onPendingImagesChange(prev => ({
+        ...prev,
+        [slot === 'THUMBNAIL' ? 'thumbnail' : 'backview']: null,
+        [slot === 'THUMBNAIL' ? 'thumbnailPreview' : 'backviewPreview']: null,
+      }));
+    }
+  };
+
+  const handlePendingGallery = (file: File) => {
+    if (!validateFile(file)) return;
+    if ((pendingImages?.gallery.length || 0) >= 6) {
+      setErrorMessage('Maximum 6 gallery images allowed.');
+      return;
+    }
+    const previewUrl = URL.createObjectURL(file);
+    if (onPendingImagesChange) {
+      onPendingImagesChange(prev => ({
+        ...prev,
+        gallery: [
+          ...prev.gallery,
+          {
+            id: `pending-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            file,
+            preview: previewUrl,
+          },
+        ],
+      }));
+    }
+  };
+
+  const handleRemovePendingGallery = (index: number) => {
+    if (onPendingImagesChange) {
+      onPendingImagesChange(prev => ({
+        ...prev,
+        gallery: prev.gallery.filter((_, i) => i !== index),
+      }));
+    }
+  };
+
+  // --- Handlers for Edit Mode (persisted via API) ---
   const handleUpload = async (slot: 'THUMBNAIL' | 'BACKVIEW' | 'GALLERY', file: File) => {
     if (!validateFile(file)) return;
     try {
@@ -74,9 +134,9 @@ export function ProductImagesSection({
     }
   };
 
-  const thumbnailImage = product.images.find(img => img.slot === 'THUMBNAIL' || img.isPrimary);
-  const backviewImage = product.images.find(img => img.slot === 'BACKVIEW');
-  const galleryImages = product.images
+  const thumbnailImage = product?.images?.find(img => img.slot === 'THUMBNAIL' || img.isPrimary);
+  const backviewImage = product?.images?.find(img => img.slot === 'BACKVIEW');
+  const galleryImages = (product?.images || [])
     .filter(img => img.slot === 'GALLERY')
     .sort((a, b) => a.sortOrder - b.sortOrder);
 
@@ -97,13 +157,37 @@ export function ProductImagesSection({
     }
   };
 
+  const currentThumbnailUrl = isCreateMode
+    ? pendingImages?.thumbnailPreview || null
+    : thumbnailImage?.url
+      ? resolveMediaUrl(thumbnailImage.url)
+      : null;
+
+  const currentBackviewUrl = isCreateMode
+    ? pendingImages?.backviewPreview || null
+    : backviewImage?.url
+      ? resolveMediaUrl(backviewImage.url)
+      : null;
+
+  const currentGalleryCount = isCreateMode
+    ? pendingImages?.gallery.length || 0
+    : galleryImages.length;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-sm font-semibold text-foreground">Media Slots</h3>
-        <p className="text-xs text-muted-foreground">
-          Upload and manage catalog storefront images. Maximum 5MB per file (WebP, JPEG, PNG).
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Media Slots</h3>
+          <p className="text-xs text-muted-foreground">
+            Upload and manage catalog storefront images. Maximum 5MB per file (WebP, JPEG, PNG).
+          </p>
+        </div>
+        {isCreateMode && (
+          <div className="flex items-center gap-1.5 rounded-lg bg-mint/20 border border-primary/20 px-3 py-1.5 text-xs text-primary-deep dark:text-primary">
+            <Info className="h-4 w-4 shrink-0" />
+            <span>Images selected here will be uploaded automatically when you create the product.</span>
+          </div>
+        )}
       </div>
 
       {errorMessage && (
@@ -126,10 +210,22 @@ export function ProductImagesSection({
 
           <ImageSlotUploader
             slot="thumbnail"
-            currentUrl={thumbnailImage?.url}
-            disabled={uploadMutation.isPending}
-            onFileSelect={file => handleUpload('THUMBNAIL', file)}
-            onRemove={() => thumbnailImage && handleDelete(thumbnailImage.id)}
+            currentUrl={currentThumbnailUrl}
+            disabled={!isCreateMode && uploadMutation.isPending}
+            onFileSelect={file => {
+              if (isCreateMode) {
+                handlePendingFile('THUMBNAIL', file);
+              } else {
+                handleUpload('THUMBNAIL', file);
+              }
+            }}
+            onRemove={() => {
+              if (isCreateMode) {
+                handleRemovePending('THUMBNAIL');
+              } else if (thumbnailImage) {
+                handleDelete(thumbnailImage.id);
+              }
+            }}
           />
         </div>
 
@@ -144,10 +240,22 @@ export function ProductImagesSection({
 
           <ImageSlotUploader
             slot="backview"
-            currentUrl={backviewImage?.url}
-            disabled={uploadMutation.isPending}
-            onFileSelect={file => handleUpload('BACKVIEW', file)}
-            onRemove={() => backviewImage && handleDelete(backviewImage.id)}
+            currentUrl={currentBackviewUrl}
+            disabled={!isCreateMode && uploadMutation.isPending}
+            onFileSelect={file => {
+              if (isCreateMode) {
+                handlePendingFile('BACKVIEW', file);
+              } else {
+                handleUpload('BACKVIEW', file);
+              }
+            }}
+            onRemove={() => {
+              if (isCreateMode) {
+                handleRemovePending('BACKVIEW');
+              } else if (backviewImage) {
+                handleDelete(backviewImage.id);
+              }
+            }}
           />
         </div>
       </div>
@@ -157,30 +265,71 @@ export function ProductImagesSection({
         <div className="flex items-center justify-between">
           <div>
             <span className="text-xs font-semibold text-foreground">
-              Gallery Images ({galleryImages.length}/6)
+              Gallery Images ({currentGalleryCount}/6)
             </span>
             <p className="text-[11px] text-muted-foreground">
               Detail shots, model poses, and fabric close-ups
             </p>
           </div>
-          {galleryImages.length < 6 && (
+          {currentGalleryCount < 6 && (
             <label className="cursor-pointer rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors">
               <span>+ Add Gallery Image</span>
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 className="hidden"
-                disabled={uploadMutation.isPending}
+                disabled={!isCreateMode && uploadMutation.isPending}
                 onChange={e => {
                   const file = e.target.files?.[0];
-                  if (file) handleUpload('GALLERY', file);
+                  if (file) {
+                    if (isCreateMode) {
+                      handlePendingGallery(file);
+                    } else {
+                      handleUpload('GALLERY', file);
+                    }
+                  }
+                  e.target.value = '';
                 }}
               />
             </label>
           )}
         </div>
 
-        {galleryImages.length === 0 ? (
+        {isCreateMode ? (
+          (pendingImages?.gallery.length || 0) === 0 ? (
+            <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+              No gallery images selected yet.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6">
+              {pendingImages?.gallery.map((item, idx) => (
+                <div
+                  key={item.id}
+                  className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xs"
+                >
+                  <div className="relative aspect-square w-full bg-muted">
+                    <img
+                      src={item.preview}
+                      alt={`Gallery pending ${idx + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="flex items-center justify-end border-t border-border bg-card p-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePendingGallery(idx)}
+                      className="p-1 rounded text-muted-foreground hover:text-destructive cursor-pointer"
+                      title="Remove image"
+                      aria-label={`Remove gallery image ${idx + 1}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        ) : galleryImages.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
             No gallery images uploaded yet.
           </div>
@@ -193,11 +342,12 @@ export function ProductImagesSection({
               >
                 <div className="relative aspect-square w-full bg-muted">
                   <Image
-                    src={img.url}
+                    src={resolveMediaUrl(img.url)}
                     alt={img.altText || `Gallery image ${idx + 1}`}
                     fill
                     sizes="120px"
                     className="object-cover"
+                    unoptimized={!img.url.includes('res.cloudinary.com')}
                   />
                 </div>
                 <div className="flex items-center justify-between border-t border-border bg-card p-1.5">
@@ -242,4 +392,3 @@ export function ProductImagesSection({
     </div>
   );
 }
-

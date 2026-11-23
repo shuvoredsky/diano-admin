@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { resolveMediaUrl } from '@/lib/utils/media';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -85,6 +86,8 @@ export function StoreProfileForm() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Logo upload failed';
       setStatusMsg({ type: 'error', text: msg });
+    } finally {
+      e.target.value = '';
     }
   };
 
@@ -99,6 +102,8 @@ export function StoreProfileForm() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Favicon upload failed';
       setStatusMsg({ type: 'error', text: msg });
+    } finally {
+      e.target.value = '';
     }
   };
 
@@ -146,8 +151,8 @@ export function StoreProfileForm() {
     return <div className="h-64 rounded-2xl border border-border bg-card p-6 animate-pulse" />;
   }
 
-  const isCloudinaryLogo = logo && logo.startsWith('https://res.cloudinary.com/');
-  const isCloudinaryFavicon = favicon && favicon.startsWith('https://res.cloudinary.com/');
+  const hasLogo = Boolean(logo);
+  const hasFavicon = Boolean(favicon);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -180,8 +185,8 @@ export function StoreProfileForm() {
             <Label className="text-xs font-semibold">Storefront Main Logo</Label>
             <div className="flex items-center gap-4">
               <div className="h-16 w-24 relative rounded-lg border border-border bg-muted/40 flex items-center justify-center overflow-hidden shrink-0">
-                {isCloudinaryLogo ? (
-                  <Image src={logo} alt="Store logo" fill className="object-contain p-1" />
+                {hasLogo ? (
+                  <Image src={resolveMediaUrl(logo)} alt="Store logo" fill className="object-contain p-1" unoptimized={!logo.includes('res.cloudinary.com')} />
                 ) : (
                   <ImageOff className="h-6 w-6 text-muted-foreground" />
                 )}
@@ -210,8 +215,8 @@ export function StoreProfileForm() {
             <Label className="text-xs font-semibold">Browser Favicon</Label>
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 relative rounded-lg border border-border bg-muted/40 flex items-center justify-center overflow-hidden shrink-0">
-                {isCloudinaryFavicon ? (
-                  <Image src={favicon} alt="Favicon" fill className="object-contain p-1" />
+                {hasFavicon ? (
+                  <Image src={resolveMediaUrl(favicon)} alt="Favicon" fill className="object-contain p-1" unoptimized={!favicon.includes('res.cloudinary.com')} />
                 ) : (
                   <ImageOff className="h-5 w-5 text-muted-foreground" />
                 )}

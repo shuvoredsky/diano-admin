@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { resolveMediaUrl } from '@/lib/utils/media';
 import { ConfirmDialog } from '@/components/feedback/confirm-dialog';
 import { DateText } from '@/components/shared/date-text';
 import { EmptyState } from '@/components/feedback/empty-state';
@@ -92,19 +93,20 @@ export function BannersTable({
             </thead>
             <tbody className="divide-y divide-border/40">
               {data.map((banner) => {
-                const isCloudinary = banner.desktopImage && banner.desktopImage.startsWith('https://res.cloudinary.com/');
+                const hasDesktopImage = Boolean(banner.desktopImage);
                 const placementColor = PLACEMENT_COLOR_MAP[banner.placement] || 'bg-muted text-foreground';
 
                 return (
                   <tr key={banner.id} className="hover:bg-muted/20 transition-colors">
                     <td className="px-4 py-3.5">
                       <div className="h-10 w-16 relative rounded-md overflow-hidden bg-muted border border-border/60 flex items-center justify-center shrink-0">
-                        {isCloudinary ? (
+                        {hasDesktopImage ? (
                           <Image
-                            src={banner.desktopImage}
+                            src={resolveMediaUrl(banner.desktopImage)}
                             alt={banner.altText || banner.title}
                             fill
                             className="object-cover"
+                            unoptimized={!banner.desktopImage.includes('res.cloudinary.com')}
                           />
                         ) : (
                           <ImageOff className="h-4 w-4 text-muted-foreground" />

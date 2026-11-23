@@ -28,6 +28,7 @@ export function proxy(request: NextRequest): NextResponse {
 
 export const config = {
   matcher: [
+    '/admin',
     '/admin/:path*',
     '/login',
     '/forgot-password',

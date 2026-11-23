@@ -34,7 +34,11 @@ export function AuthGate({ children }: AuthGateProps) {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       const returnTo = encodeURIComponent(pathname);
-      router.replace(`/login?returnTo=${returnTo}`);
+      if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
+        window.location.assign(`/login?returnTo=${returnTo}`);
+      } else {
+        router.replace(`/login?returnTo=${returnTo}`);
+      }
     }
   }, [isLoading, isAuthenticated, pathname, router]);
 
@@ -56,9 +60,22 @@ export function AuthGate({ children }: AuthGateProps) {
     );
   }
 
-  // 2. Unauthenticated: hold empty state while redirecting to /login
+  // 2. Unauthenticated: hold visible transition splash while redirecting to /login
   if (!isAuthenticated) {
-    return null;
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-mint border border-primary/20 text-primary-deep shadow-xs">
+          <ShieldCheck className="h-8 w-8" />
+        </div>
+        <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-foreground">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <span>Redirecting to Login Portal...</span>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Your administrative session has ended. Redirecting to sign in.
+        </p>
+      </div>
+    );
   }
 
   // 3. Permission Check for Current Route

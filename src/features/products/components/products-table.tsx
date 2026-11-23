@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Edit2, ImageOff, Star, Trash2, CheckCircle2, Archive, FileText } from 'lucide-react';
+import { resolveMediaUrl } from '@/lib/utils/media';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/feedback/confirm-dialog';
 import { DateText } from '@/components/shared/date-text';
@@ -77,11 +78,12 @@ export function ProductsTable({
             <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
               {primaryImage?.url ? (
                 <Image
-                  src={primaryImage.url}
+                  src={resolveMediaUrl(primaryImage.url)}
                   alt={row.name}
                   fill
                   sizes="44px"
                   className="object-cover"
+                  unoptimized={!primaryImage.url.includes('res.cloudinary.com')}
                 />
               ) : (
                 <ImageOff className="h-4 w-4 text-muted-foreground" />

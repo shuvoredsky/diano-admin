@@ -75,11 +75,15 @@ export function evaluateProxyRequest(params: {
   }
 
   // 2. Optimistically authenticated user visiting /login -> redirect to /admin
+  // BUT do not redirect if the user was explicitly redirected to login with returnTo (session expired/invalid)
   if (isPublicAuthRoute && pathname === AUTH_ROUTES.LOGIN && hasRefreshCookie) {
-    return {
-      action: 'redirect',
-      destination: ADMIN_ROUTES.ROOT,
-    };
+    const hasReturnTo = Boolean(search && new URLSearchParams(search).get('returnTo'));
+    if (!hasReturnTo) {
+      return {
+        action: 'redirect',
+        destination: ADMIN_ROUTES.ROOT,
+      };
+    }
   }
 
   return { action: 'next' };

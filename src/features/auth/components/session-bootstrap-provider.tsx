@@ -4,7 +4,7 @@ import { useEffect, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppDispatch } from '@/store/hooks';
 import { setAuthLoading, setSession, clearSession } from '@/store/slices/auth.slice';
-import { clearAccessToken, setAccessToken } from '@/lib/auth/token-store';
+import { clearAccessToken, getAccessToken, setAccessToken } from '@/lib/auth/token-store';
 import { onSessionExpired } from '@/lib/auth/auth-events';
 import { refreshAdminSession, getCurrentAdminProfile } from '../api/auth.api';
 
@@ -23,9 +23,30 @@ export function SessionBootstrapProvider({ children }: SessionBootstrapProviderP
     const unsubscribeSessionExpired = onSessionExpired(() => {
       dispatch(clearSession());
       queryClient.removeQueries({ queryKey: ['auth', 'me'] });
+      fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => { });
     });
 
     async function bootstrap() {
+      // If we already have an active access token in memory, populate profile without consuming a refresh token
+      const existingToken = getAccessToken();
+      if (existingToken) {
+        try {
+          const profile = await getCurrentAdminProfile();
+          if (!isMounted) return;
+          dispatch(
+            setSession({
+              user: profile,
+              permissions: profile.permissions || [],
+              isSuperAdmin: profile.isSuperAdmin,
+            })
+          );
+          queryClient.setQueryData(['auth', 'me'], profile);
+          return;
+        } catch {
+          // Access token might be expired, proceed to refresh
+        }
+      }
+
       dispatch(setAuthLoading());
 
       try {

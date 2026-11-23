@@ -24,8 +24,15 @@ export async function fetchAdminProducts(
 
   if (params.page !== undefined) queryParams.page = params.page;
   if (params.limit !== undefined) queryParams.limit = params.limit;
-  if (params.sortBy) queryParams.sortBy = params.sortBy;
-  if (params.sortOrder) queryParams.sortOrder = params.sortOrder;
+  let backendSortBy: 'newest' | 'price_asc' | 'price_desc' | 'name_asc' | 'name_desc' | 'popular';
+  if (params.sortBy === 'name') {
+    backendSortBy = params.sortOrder === 'desc' ? 'name_desc' : 'name_asc';
+  } else if (params.sortBy === 'mrp') {
+    backendSortBy = params.sortOrder === 'asc' ? 'price_asc' : 'price_desc';
+  } else {
+    backendSortBy = 'newest';
+  }
+  queryParams.sortBy = backendSortBy;
   if (params.q) queryParams.q = params.q.trim();
   if (params.categoryId) queryParams.categoryId = params.categoryId;
   if (params.status) queryParams.status = params.status;
