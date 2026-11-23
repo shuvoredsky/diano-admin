@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { mapBackendValidationErrors } from '@/lib/crud';
 import { useCreateCategoryMutation, useUpdateCategoryMutation } from '../hooks/use-categories-queries';
 import type { CategoryItem } from '../types/categories.types';
-import { X, Loader2, AlertCircle } from 'lucide-react';
+import { getAllDescendantIds, getCategoryPath, buildCategoryTreeOptions } from '../utils/category-tree-utils';
+import { X, Loader2, AlertCircle, GitFork } from 'lucide-react';
 
 const categoryFormSchema = z.object({
   name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
@@ -21,9 +22,9 @@ const categoryFormSchema = z.object({
     .or(z.literal('')),
   description: z.string().trim().max(1000).optional().or(z.literal('')),
   parentId: z.string().nullable().optional(),
-  isFeatured: z.boolean().default(false),
-  isActive: z.boolean().default(true),
-  sortOrder: z.coerce.number().int().min(0).default(0),
+  isFeatured: z.boolean(),
+  isActive: z.boolean(),
+  sortOrder: z.number().int().min(0),
 });
 
 type CategoryFormValues = z.infer<typeof categoryFormSchema>;
@@ -55,7 +56,7 @@ export function CategoryFormModal({
     reset,
     setError,
     formState: { errors, isDirty },
-  } = useForm({
+  } = useForm<CategoryFormValues>({
     resolver: zodResolver(categoryFormSchema),
     defaultValues: {
       name: '',
@@ -105,19 +106,26 @@ export function CategoryFormModal({
     }
   }, [isOpen, category, parentCategory, reset]);
 
-  if (!isOpen) return null;
+  // Current category breadcrumb path in edit mode
+  const currentPath = useMemo(() => {
+    if (!category) return null;
+    return getCategoryPath(category.id, allCategories);
+  }, [category, allCategories]);
 
-  // Depth protection: exclude current category and its descendants, and categories already at depth >= 3
-  const validParents = allCategories.filter((cat) => {
-    if (category && (cat.id === category.id || cat.parentId === category.id)) {
-      return false;
+  // Build parent options preventing cycle: category itself + all its descendants are disabled
+  const parentOptions = useMemo(() => {
+    const disabledIds = new Set<string>();
+    if (category) {
+      disabledIds.add(category.id);
+      const descendants = getAllDescendantIds(category.id, allCategories);
+      for (const dId of descendants) {
+        disabledIds.add(dId);
+      }
     }
-    // Cannot select a parent that is at depth 3 (since child would be depth 4)
-    if ((cat.depth || 1) >= 3) {
-      return false;
-    }
-    return true;
-  });
+    return buildCategoryTreeOptions(allCategories, disabledIds);
+  }, [category, allCategories]);
+
+  if (!isOpen) return null;
 
   const onSubmit = async (values: CategoryFormValues) => {
     setServerError(null);
@@ -138,7 +146,7 @@ export function CategoryFormModal({
         await createMutation.mutateAsync(payload);
       }
       onClose();
-    } catch (err) {
+    } catch (err: unknown) {
       const msg = mapBackendValidationErrors(err, setError);
       setServerError(msg);
     }
@@ -146,11 +154,19 @@ export function CategoryFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-xl space-y-5">
+      <div className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-xl space-y-4">
         <div className="flex items-center justify-between border-b border-border/60 pb-3">
-          <h2 className="text-lg font-bold text-foreground">
-            {category ? 'Edit Category' : parentCategory ? `Add Subcategory to "${parentCategory.name}"` : 'New Root Category'}
-          </h2>
+          <div>
+            <h2 className="text-lg font-bold text-foreground">
+              {category ? 'Edit Category' : parentCategory ? `Add Subcategory to "${parentCategory.name}"` : 'New Root Category'}
+            </h2>
+            {currentPath && (
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5 font-medium">
+                <GitFork className="h-3 w-3 text-primary" />
+                <span>Path: <strong className="text-foreground">{currentPath}</strong></span>
+              </p>
+            )}
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -197,16 +213,16 @@ export function CategoryFormModal({
 
             <div>
               <label className="block text-xs font-semibold text-foreground mb-1">
-                Parent Category (Max 3 levels)
+                Parent Category
               </label>
               <select
                 {...register('parentId')}
-                className="w-full h-9 rounded-xl border border-border bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                className="w-full h-9 rounded-xl border border-border bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer truncate"
               >
                 <option value="">None (Root Category — Level 1)</option>
-                {validParents.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {`${'— '.repeat((p.depth || 1) - 1)}${p.name} (Level ${(p.depth || 1)})`}
+                {parentOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id} disabled={opt.disabled}>
+                    {opt.path} {opt.disabled ? '(Self / Descendant)' : ''}
                   </option>
                 ))}
               </select>
@@ -269,4 +285,3 @@ export function CategoryFormModal({
     </div>
   );
 }
-

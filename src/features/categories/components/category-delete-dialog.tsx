@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useDeleteCategoryMutation } from '../hooks/use-categories-queries';
 import type { CategoryItem } from '../types/categories.types';
+import { getAllDescendantIds, getCategoryPath } from '../utils/category-tree-utils';
 import { AlertTriangle, Loader2, AlertCircle } from 'lucide-react';
 
 export interface CategoryDeleteDialogProps {
@@ -24,10 +25,24 @@ export function CategoryDeleteDialog({
   const deleteMutation = useDeleteCategoryMutation();
   const isDeleting = deleteMutation.isPending;
 
+  // Filter out the category being deleted and ALL its descendants
+  const validReassignTargets = useMemo(() => {
+    if (!category) return [];
+    const descendantIds = getAllDescendantIds(category.id, allCategories);
+    descendantIds.add(category.id);
+
+    return allCategories
+      .filter((c) => !descendantIds.has(c.id))
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        path: getCategoryPath(c.id, allCategories) || c.name,
+      }))
+      .sort((a, b) => a.path.localeCompare(b.path));
+  }, [category, allCategories]);
+
   if (!isOpen || !category) return null;
 
-  // Filter out the category being deleted and its descendants
-  const validReassignTargets = allCategories.filter((c) => c.id !== category.id && c.parentId !== category.id);
   const hasItems = (category.productCount || 0) > 0 || (category.children && category.children.length > 0);
 
   const handleDelete = async () => {
@@ -38,7 +53,7 @@ export function CategoryDeleteDialog({
         reassignToId: reassignToId || undefined,
       });
       onClose();
-    } catch (err) {
+    } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to delete category');
     }
   };
@@ -63,7 +78,7 @@ export function CategoryDeleteDialog({
         {hasItems && (
           <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 space-y-2">
             <p className="text-xs font-semibold text-amber-800 dark:text-amber-400">
-              Notice: This category currently has {category.productCount || 0} product(s).
+              Notice: This category currently has {category.productCount || 0} product(s) or child categories.
             </p>
             <label className="block text-[11px] font-medium text-amber-900 dark:text-amber-300">
               Reassign products to another category:
@@ -71,12 +86,12 @@ export function CategoryDeleteDialog({
             <select
               value={reassignToId}
               onChange={(e) => setReassignToId(e.target.value)}
-              className="w-full h-8 rounded-lg border border-border bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+              className="w-full h-8 rounded-lg border border-border bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer truncate"
             >
               <option value="">Select target category...</option>
               {validReassignTargets.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.name}
+                  {t.path}
                 </option>
               ))}
             </select>
@@ -113,4 +128,3 @@ export function CategoryDeleteDialog({
     </div>
   );
 }
-

@@ -105,7 +105,7 @@ export function CategoriesManager() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <PageHeader
           title="Categories & Taxonomy"
-          description="Hierarchical category tree with max 3-level depth and specification templates."
+          description="Hierarchical category tree with deep levels, breadcrumbs, and specification templates."
           className="mb-0"
         />
 
@@ -204,4 +204,3 @@ export function CategoriesManager() {
     </div>
   );
 }
-

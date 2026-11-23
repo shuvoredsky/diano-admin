@@ -45,6 +45,36 @@ const mockCategories: CategoryItem[] = [
             productCount: 4,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
+            children: [
+              {
+                id: 'cat-4',
+                name: 'Cotton Blend',
+                slug: 'cotton-blend',
+                parentId: 'cat-3',
+                depth: 4,
+                isActive: true,
+                isFeatured: false,
+                sortOrder: 0,
+                productCount: 2,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                children: [
+                  {
+                    id: 'cat-5',
+                    name: 'Hand Embroidered',
+                    slug: 'hand-embroidered',
+                    parentId: 'cat-4',
+                    depth: 5,
+                    isActive: true,
+                    isFeatured: false,
+                    sortOrder: 0,
+                    productCount: 1,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                  },
+                ],
+              },
+            ],
           },
         ],
       },
@@ -52,13 +82,13 @@ const mockCategories: CategoryItem[] = [
   },
 ];
 
-describe('Categories Management (Phase 5A)', () => {
+describe('Categories Management (Unlimited Depth)', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
   describe('Categories Tree View & Depth Rules', () => {
-    it('renders root, subcategory, and child levels with depth badges', () => {
+    it('renders deep nested hierarchy (5+ levels) when expanded with depth badges', () => {
       vi.spyOn(authPermissionsHook, 'useAuthPermissions').mockReturnValue({
         user: undefined,
         permissions: ['category:read', 'category:create', 'category:update', 'category:delete'],
@@ -86,18 +116,23 @@ describe('Categories Management (Phase 5A)', () => {
       );
 
       expect(screen.getByText('Men')).toBeInTheDocument();
-      expect(screen.getByText('Level 1 (Root)')).toBeInTheDocument();
+      expect(screen.getByText('Level 1')).toBeInTheDocument();
 
-      // Root and subcategory with children have collapse buttons
-      const expandBtns = screen.getAllByLabelText(/Collapse category/i);
-      expect(expandBtns.length).toBeGreaterThan(0);
+      // Click "Expand All" to reveal all 5 levels
+      const expandAllBtn = screen.getByRole('button', { name: /Expand All/i });
+      fireEvent.click(expandAllBtn);
+
       expect(screen.getByText('Panjabi')).toBeInTheDocument();
-      expect(screen.getByText('Level 2 (Subcategory)')).toBeInTheDocument();
+      expect(screen.getByText('Level 2')).toBeInTheDocument();
       expect(screen.getByText('Semilong Panjabi')).toBeInTheDocument();
-      expect(screen.getByText('Level 3 (Child)')).toBeInTheDocument();
+      expect(screen.getByText('Level 3')).toBeInTheDocument();
+      expect(screen.getByText('Cotton Blend')).toBeInTheDocument();
+      expect(screen.getByText('Level 4')).toBeInTheDocument();
+      expect(screen.getByText('Hand Embroidered')).toBeInTheDocument();
+      expect(screen.getByText('Level 5')).toBeInTheDocument();
     });
 
-    it('enforces maximum category depth of 3 levels (cannot add subcategory to Level 3)', () => {
+    it('allows adding subcategories at deep levels without hardcoded level 3 limit', () => {
       vi.spyOn(authPermissionsHook, 'useAuthPermissions').mockReturnValue({
         user: undefined,
         permissions: ['category:read', 'category:create', 'category:update', 'category:delete'],
@@ -124,9 +159,13 @@ describe('Categories Management (Phase 5A)', () => {
         </AppProviders>
       );
 
-      // "Add Sub" button is visible for Level 1 and Level 2, but NEVER for Level 3
+      // Expand all to see all nodes
+      const expandAllBtn = screen.getByRole('button', { name: /Expand All/i });
+      fireEvent.click(expandAllBtn);
+
+      // "Add Sub" button is visible for every level (all 5 nodes have add sub button)
       const addSubButtons = screen.getAllByTitle('Add Subcategory');
-      expect(addSubButtons.length).toBe(2); // Men (L1) and Panjabi (L2) only
+      expect(addSubButtons.length).toBe(5);
     });
 
     it('hides modification actions for users lacking category permissions', () => {
